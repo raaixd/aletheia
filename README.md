@@ -6,19 +6,19 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
 
 ---
 
-## Current Status: Phase 4 — Evidence Model & Graph Complete
+## Current Status: Phase 5 — Single-LLM Baseline & Evaluation Harness Complete
 
 - **Phase 1 (Foundation)**: Simulated checkout service, PostgreSQL 16, Docker Compose, automated product seeding, synthetic traffic generator.
 - **Phase 2 (Observability)**: Correlated telemetry triad across all services (structured JSON logging, context-aware correlation IDs, Prometheus metrics, OpenTelemetry distributed tracing).
 - **Phase 3 (Failure Injection)**: Controlled, reproducible failure injection system with ground truth isolation (`INC-001` database query regression).
-- **Phase 4 (Evidence Model & Graph)**: Deterministic, time-aware evidence layer without an LLM:
-  - **Evidence Schema & Provenance**: Standardized `EvidenceItem` with immutable audit trail (`source_type`, `source_uri`, `extracted_at`, `raw_reference`).
-  - **Entity Taxonomy**: Normalized entities (`Service`, `Deployment`, `Commit`, `Database`, `Endpoint`, `Metric`, `Error`, `Trace`).
-  - **Explicit Typed Relationships**: Directed edges with types (`INTRODUCED`, `MODIFIED`, `EXECUTES_ON`, `CALLS`, `INCREASED`, `CONTRIBUTED_TO`, `CAUSED`, `PRECEDES`).
-  - **Deterministic Timeline**: Chronologically sorted sequence of events with human-readable ASCII rendering.
-  - **Telemetry Adapters**: Pluggable adapters (`LogAdapter`, `TraceAdapter`, `MetricAdapter`, `DeployAdapter`, `LocalEvidenceSource`).
-  - **Graph Query Engine**: Directed graph with DFS causal path finding, temporal window subgraphs, and GitHub-compatible Mermaid export.
-  - **Automated Verification**: 100% passing test suite (40/40 unit, integration, and E2E graph tests).
+- **Phase 4 (Evidence Model & Graph)**: Deterministic, time-aware evidence layer without an LLM (evidence schema, provenance, entity models, timeline, graph engine, and traversal).
+- **Phase 5 (Single-LLM Baseline & Evaluation Harness)**:
+  - **Ground Truth Isolation**: Diagnostic models are evaluated strictly against observable evidence, never given ground truth clues or answers.
+  - **Baseline A (Single-LLM Context Dump)**: Full telemetry serialization into a structured diagnosis with strict JSON discipline.
+  - **Six-Dimensional Evaluation Metrics**: Root cause accuracy, attribution accuracy, affected service/component, evidence recall, evidence precision, and hallucination penalty.
+  - **Hermetic Mocking & Live LLM Client**: Built-in mock simulation modes (`accurate`, `hallucinated`, `partial`, `invalid_json`) and live OpenAI-compatible provider.
+  - **CLI & REST API Scorecards**: Full command-line inspector and REST endpoints (`/api/v1/eval/run`, `/api/v1/eval/reports`).
+  - **Automated Verification**: 100% passing test suite (66/66 unit and integration tests, 85% coverage).
 
 ---
 
@@ -285,6 +285,38 @@ curl http://localhost:8000/api/v1/investigation/graph
 curl "http://localhost:8000/api/v1/investigation/paths?source=deploy:checkout-api:v4.2.1&target=evt:EVT-005"
 ```
 
+### Evaluation Harness & Baseline Benchmarking (Phase 5)
+
+Run benchmark evaluations across mock simulation modes or live LLMs:
+
+```bash
+# Evaluate Baseline A with accurate model simulation
+python -m aletheia.evaluation.cli --incident INC-001 --mock accurate
+
+# Evaluate with hallucinated model (demonstrates hallucination penalty & audit)
+python -m aletheia.evaluation.cli --incident INC-001 --mock hallucinated
+
+# Evaluate with partial model (demonstrates partial recall and attribution loss)
+python -m aletheia.evaluation.cli --incident INC-001 --mock partial
+
+# Export evaluation scorecard as JSON
+python -m aletheia.evaluation.cli --incident INC-001 --mock accurate --json
+
+# Run live evaluation with OpenAI or compatible endpoint (requires OPENAI_API_KEY)
+python -m aletheia.evaluation.cli --incident INC-001 --live --model gpt-4o-mini
+```
+
+Or trigger evaluation via Aletheia REST API:
+```bash
+# Run evaluation via API
+curl -X POST http://localhost:8000/api/v1/eval/run \
+  -H "Content-Type: application/json" \
+  -d '{"incident_id": "INC-001", "baseline": "single-llm", "mock_mode": "accurate"}'
+
+# List past evaluation reports
+curl http://localhost:8000/api/v1/eval/reports
+```
+
 ---
 
 ## Development Roadmap
@@ -293,11 +325,11 @@ curl "http://localhost:8000/api/v1/investigation/paths?source=deploy:checkout-ap
 - [x] **Phase 2 — Observability**: Structured JSON logging, OpenTelemetry distributed traces, Prometheus metrics, and correlation IDs.
 - [x] **Phase 3 — Failure Injection**: Controlled failure scenarios (e.g., `INC-001` Database Query Regression) with ground truth definitions.
 - [x] **Phase 4 — Evidence Model & Graph**: Time-aware evidence schema, provenance, entity models, deterministic timeline, and evidence graph query engine.
-- [ ] **Phase 5 — Single-LLM Baseline**: Baseline diagnostic evaluator.
+- [x] **Phase 5 — Single-LLM Baseline & Evaluation Harness**: Ground truth isolation, single-LLM context dump baseline, 6-dimensional scoring (root cause, attribution, service, recall, precision, hallucinations), hermetic mock clients, and scorecard CLI/API.
 - [ ] **Phase 6 — Agent 1: Investigator**: Evidence collection, entity extraction, and timeline construction.
 - [ ] **Phase 7 — Agent 2: Analyst**: Multi-hypothesis generation with supporting and contradicting evidence.
 - [ ] **Phase 8 — Agent 3: Verifier**: Adversarial hypothesis challenge, temporal validation, and confidence scoring.
-- [ ] **Phase 9 — Evaluation Harness**: Accuracy, evidence precision/recall, latency, and cost benchmarking.
+- [ ] **Phase 9 — Multi-Architecture Evaluation**: Quantitative benchmarking comparing Baseline A vs Baseline B (Investigator+Analyst) vs System C (Investigator+Analyst+Verifier).
 - [ ] **Phase 10 — Hard Cases & Adversarial Robustness**: Prompt injection, noisy logs, conflicting signals.
 - [ ] **Phase 11 — Frontend Dashboard**: Visual timeline, evidence graph, and investigation trace.
 - [ ] **Phase 12 — Cloud Deployment**: AWS ECS/Fargate, RDS PostgreSQL, OpenTelemetry.

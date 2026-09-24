@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     # Database URL (optional for Aletheia platform storage in later phases)
     database_url: Optional[str] = None
 
+    # LLM & Evaluation Configuration
+    llm_provider: str = "mock"  # "mock", "openai", "openai-compatible"
+    llm_api_key: Optional[str] = None
+    llm_base_url: str = "https://api.openai.com/v1"
+    llm_model: str = "gpt-4o-mini"
+    llm_temperature: float = 0.0
+    llm_mock_mode: str = "accurate"  # "accurate", "hallucinated", "partial", "invalid_json"
+
 
 @lru_cache
 def get_settings() -> Settings:
