@@ -1,21 +1,19 @@
 """Main application entry point for the simulated Checkout API."""
 
 import logging
-import time
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from aletheia.observability.logging import setup_logging
+from aletheia.observability.metrics import metrics_router
+from aletheia.observability.middleware import ObservabilityMiddleware
+from aletheia.observability.tracing import setup_tracing
 from simulator.services.checkout_api.config import get_checkout_settings
 from simulator.services.checkout_api.database import init_db, get_session_factory, get_engine
 from simulator.services.checkout_api.routes import router
 from simulator.services.checkout_api.seed import seed_initial_data
 
-# Configure structured logging format
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
-)
 logger = logging.getLogger("checkout-api")
 
 
@@ -52,6 +50,10 @@ def create_checkout_app() -> FastAPI:
     """Create and configure Checkout API FastAPI application."""
     settings = get_checkout_settings()
 
+    # Initialize observability subsystems
+    setup_logging(service_name=settings.service_name)
+    setup_tracing(service_name=settings.service_name, enable_in_memory=True)
+
     app = FastAPI(
         title=f"Simulated Production: {settings.service_name}",
         version=settings.service_version,
@@ -59,19 +61,10 @@ def create_checkout_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Middleware for request timing and audit logging
-    @app.middleware("http")
-    async def log_requests(request: Request, call_next):
-        start_time = time.perf_counter()
-        response = await call_next(request)
-        duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
-        logger.info(
-            f"{request.method} {request.url.path} -> "
-            f"status={response.status_code} duration={duration_ms}ms"
-        )
-        response.headers["X-Response-Time-Ms"] = str(duration_ms)
-        return response
+    # Observability middleware captures correlation IDs, Prometheus metrics, and OpenTelemetry spans
+    app.add_middleware(ObservabilityMiddleware, service_name=settings.service_name)
 
+    # Enable CORS for frontend and service-to-service communication
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -81,6 +74,7 @@ def create_checkout_app() -> FastAPI:
     )
 
     app.include_router(router)
+    app.include_router(metrics_router)
     return app
 
 

@@ -6,17 +6,15 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
 
 ---
 
-## Current Status: Phase 1 — Foundation
+## Current Status: Phase 2 — Observability Complete
 
-Phase 1 provides the simulated production target environment and foundational investigation platform runtime:
-
-- **Aletheia Platform API** (`aletheia-api`): FastAPI investigation service on port `8000`.
-- **Simulated Production Checkout Service** (`checkout-api`): FastAPI e-commerce microservice on port `8001`.
-- **Persistent Storage** (`postgres`): PostgreSQL 16 on port `5432` with transactional inventory and catalog management.
-- **Auto-Seeding**: Automatic catalog population on startup (e.g. laptops, monitors, keyboards).
-- **Synthetic Traffic Generator**: Multi-threaded generator simulating realistic browsing, purchasing, and stock checks.
-- **Docker Compose Orchestration**: Single-command startup for all services.
-- **Automated Test Suite**: 100% passing unit and integration tests with fast SQLite test isolation.
+- **Phase 1 (Foundation)**: Simulated checkout service, PostgreSQL 16, Docker Compose, automated product seeding, synthetic traffic generator.
+- **Phase 2 (Observability)**: Correlated telemetry triad across all services:
+  - **Structured JSON Logging**: UTC ISO timestamps, service identifiers, context-aware correlation IDs, OpenTelemetry trace/span IDs.
+  - **Context-Aware Correlation IDs**: Thread-safe propagation via `contextvars`, client header extraction, and response header injection (`X-Correlation-ID`).
+  - **Prometheus Metrics**: `/metrics` endpoint on all services exporting request counts (`http_requests_total`), duration histograms (`http_request_duration_seconds`), error counts (`http_errors_total`), and active request gauges (`http_active_requests`).
+  - **OpenTelemetry Distributed Tracing**: Automated span creation with standard HTTP semantics and header propagation (`X-Trace-ID`, `X-Span-ID`).
+  - **Automated Verification**: 100% passing test suite (25/25 unit, integration, and E2E correlation tests).
 
 ---
 
@@ -37,6 +35,11 @@ aletheia/
 │   │   └── app.py
 │   ├── config/                     # Typed Pydantic Settings
 │   │   └── settings.py
+│   ├── observability/              # Telemetry Triad (Logging, Tracing, Metrics)
+│   │   ├── logging.py              # Structured JSON formatter & correlation context
+│   │   ├── tracing.py              # OpenTelemetry TracerProvider & span utilities
+│   │   ├── metrics.py              # Prometheus metric definitions & /metrics endpoint
+│   │   └── middleware.py           # FastAPI ObservabilityMiddleware
 │   ├── models/                     # Evidence & domain models (future phases)
 │   └── services/                   # Investigation orchestration (future phases)
 │
@@ -199,7 +202,7 @@ curl http://localhost:8000/health
 ## Development Roadmap
 
 - [x] **Phase 1 — Foundation**: Simulated checkout service, PostgreSQL, Docker Compose, initial catalog, traffic generator, test suite.
-- [ ] **Phase 2 — Observability**: Structured JSON logging, OpenTelemetry distributed traces, Prometheus metrics.
+- [x] **Phase 2 — Observability**: Structured JSON logging, OpenTelemetry distributed traces, Prometheus metrics, and correlation IDs.
 - [ ] **Phase 3 — Failure Injection**: Controlled failure scenarios (e.g., `INC-001` Database Query Regression) with ground truth definitions.
 - [ ] **Phase 4 — Evidence Model & Graph**: Time-aware evidence schema, provenance, and graph representation.
 - [ ] **Phase 5 — Single-LLM Baseline**: Baseline diagnostic evaluator.

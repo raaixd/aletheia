@@ -5,6 +5,7 @@ import logging
 import random
 import sys
 import time
+import uuid
 from typing import List, Optional
 import httpx
 
@@ -83,16 +84,21 @@ class TrafficGenerator:
             "items": items_payload,
         }
 
+        corr_id = f"corr-sim-{uuid.uuid4().hex[:8]}"
+        headers = {"X-Correlation-ID": corr_id}
+
         try:
             start = time.perf_counter()
-            res = self.client.post("/api/orders", json=payload)
+            res = self.client.post("/api/orders", json=payload, headers=headers)
             elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+            trace_id = res.headers.get("x-trace-id", "none")
 
             if res.status_code == 201:
                 order_data = res.json()
                 logger.info(
                     f"Order placed successfully: order_number={order_data.get('order_number')} "
-                    f"total=${order_data.get('total_amount')} ({elapsed_ms}ms)"
+                    f"total=${order_data.get('total_amount')} ({elapsed_ms}ms) "
+                    f"[corr={corr_id} trace={trace_id}]"
                 )
                 return order_data
             else:
@@ -104,8 +110,9 @@ class TrafficGenerator:
 
     def query_order(self, order_id: int) -> Optional[dict]:
         """Query a single order by ID."""
+        corr_id = f"corr-sim-{uuid.uuid4().hex[:8]}"
         try:
-            res = self.client.get(f"/api/orders/{order_id}")
+            res = self.client.get(f"/api/orders/{order_id}", headers={"X-Correlation-ID": corr_id})
             if res.status_code == 200:
                 return res.json()
             return None
