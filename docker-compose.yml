@@ -1,0 +1,89 @@
+version: "3.8"
+
+services:
+  # ============================================================================
+  # Simulated Production Database
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: aletheia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SIMULATOR_DB_USER:-aletheia}
+      POSTGRES_PASSWORD: ${SIMULATOR_DB_PASSWORD:-aletheia_secret}
+      POSTGRES_DB: ${SIMULATOR_DB_NAME:-checkout_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SIMULATOR_DB_USER:-aletheia} -d ${SIMULATOR_DB_NAME:-checkout_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aletheia-net
+
+  # ============================================================================
+  # Simulated Production Checkout Service (Target for Incidents)
+  # ============================================================================
+  checkout-api:
+    build:
+      context: .
+      dockerfile: simulator/services/checkout_api/Dockerfile
+    container_name: aletheia-checkout-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${SIMULATOR_DB_USER:-aletheia}:${SIMULATOR_DB_PASSWORD:-aletheia_secret}@postgres:5432/${SIMULATOR_DB_NAME:-checkout_db}
+      HOST: 0.0.0.0
+      PORT: 8001
+      SERVICE_NAME: checkout-api
+      SERVICE_VERSION: 1.0.0
+      SERVICE_ENVIRONMENT: production-sim
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aletheia-net
+
+  # ============================================================================
+  # Aletheia Investigation Platform API
+  # ============================================================================
+  aletheia-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.aletheia
+    container_name: aletheia-platform-api
+    restart: unless-stopped
+    environment:
+      ALETHEIA_ENV: ${ALETHEIA_ENV:-development}
+      ALETHEIA_PORT: 8000
+      ALETHEIA_LOG_LEVEL: ${ALETHEIA_LOG_LEVEL:-INFO}
+      CHECKOUT_API_URL: http://checkout-api:8001
+    ports:
+      - "8000:8000"
+    depends_on:
+      checkout-api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aletheia-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  aletheia-net:
+    driver: bridge
