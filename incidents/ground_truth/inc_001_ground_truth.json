@@ -1,0 +1,30 @@
+{
+  "incident_id": "INC-001",
+  "name": "database_query_regression",
+  "root_cause": "slow_database_query",
+  "introduced_by": "commit_abc123",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T02:00:00Z",
+  "expected_evidence": [
+    "deployment_v4.2.1",
+    "commit_abc123",
+    "increased_db_latency",
+    "increased_checkout_latency"
+  ],
+  "ground_truth_details": {
+    "affected_endpoints": [
+      "/api/orders"
+    ],
+    "component": "postgresql",
+    "table": "orders",
+    "regression_type": "unindexed_sequential_scan",
+    "baseline_latency_ms": 5.0,
+    "regressed_latency_ms": 1500.0,
+    "commit_metadata": {
+      "commit_id": "abc12348f9",
+      "author": "alex.dev@example.com",
+      "message": "refactor(checkout): update order history lookup query to sort by updated_at without composite index",
+      "deployment_version": "v4.2.1"
+    }
+  }
+}

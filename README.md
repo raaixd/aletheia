@@ -6,15 +6,15 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
 
 ---
 
-## Current Status: Phase 2 — Observability Complete
+## Current Status: Phase 3 — Failure Injection Complete
 
 - **Phase 1 (Foundation)**: Simulated checkout service, PostgreSQL 16, Docker Compose, automated product seeding, synthetic traffic generator.
-- **Phase 2 (Observability)**: Correlated telemetry triad across all services:
-  - **Structured JSON Logging**: UTC ISO timestamps, service identifiers, context-aware correlation IDs, OpenTelemetry trace/span IDs.
-  - **Context-Aware Correlation IDs**: Thread-safe propagation via `contextvars`, client header extraction, and response header injection (`X-Correlation-ID`).
-  - **Prometheus Metrics**: `/metrics` endpoint on all services exporting request counts (`http_requests_total`), duration histograms (`http_request_duration_seconds`), error counts (`http_errors_total`), and active request gauges (`http_active_requests`).
-  - **OpenTelemetry Distributed Tracing**: Automated span creation with standard HTTP semantics and header propagation (`X-Trace-ID`, `X-Span-ID`).
-  - **Automated Verification**: 100% passing test suite (25/25 unit, integration, and E2E correlation tests).
+- **Phase 2 (Observability)**: Correlated telemetry triad across all services (structured JSON logging, context-aware correlation IDs, Prometheus metrics, OpenTelemetry distributed tracing).
+- **Phase 3 (Failure Injection)**: Controlled, reproducible failure injection system:
+  - **`INC-001` (Database Query Regression)**: Simulates release `v4.2.1` (`commit_abc123`) introducing an unindexed sequential scan on order queries, causing elevated database latency and API slowdowns.
+  - **Ground Truth Isolation**: Explicit ground truth specification (`incidents/ground_truth/inc_001_ground_truth.json`) strictly isolated from AI agents for evaluation.
+  - **Dynamic Runtime Controls**: Dynamic injection, parameter override, and instant reset via CLI (`python -m simulator.failure_injection.cli`) and REST API (`/api/simulator/inject`).
+  - **Automated Verification**: 100% passing test suite (30/30 unit, integration, and failure injection tests).
 
 ---
 
@@ -29,6 +29,12 @@ aletheia/
 ├── .env.example                    # Environment variable template
 ├── README.md                       # Project documentation
 │
+├── incidents/                      # Incident Definitions (Ground Truth & Scenarios)
+│   ├── ground_truth/               # Verified ground truth for evaluation only
+│   │   └── inc_001_ground_truth.json
+│   └── scenarios/                  # Scenario parameters & injection specifications
+│       └── inc_001_db_regression.json
+│
 ├── src/aletheia/                   # Aletheia Core Platform
 │   ├── api/                        # FastAPI routers & endpoints (/health)
 │   │   ├── routes/
@@ -40,10 +46,14 @@ aletheia/
 │   │   ├── tracing.py              # OpenTelemetry TracerProvider & span utilities
 │   │   ├── metrics.py              # Prometheus metric definitions & /metrics endpoint
 │   │   └── middleware.py           # FastAPI ObservabilityMiddleware
-│   ├── models/                     # Evidence & domain models (future phases)
+│   ├── models/                     # Evidence, incident & ground truth models
+│   │   └── incident.py
 │   └── services/                   # Investigation orchestration (future phases)
 │
 ├── simulator/                      # Simulated Production Environment
+│   ├── failure_injection/          # Dynamic failure injection controller
+│   │   ├── manager.py              # Thread-safe FailureInjectionManager singleton
+│   │   └── cli.py                  # CLI controller (inject, reset, status)
 │   ├── services/
 │   │   └── checkout_api/           # Target service for incidents
 │   │       ├── Dockerfile
@@ -52,14 +62,14 @@ aletheia/
 │   │       ├── database.py         # SQLAlchemy engine & session manager
 │   │       ├── models.py           # Product, Order, OrderItem models
 │   │       ├── schemas.py          # Pydantic v2 schemas
-│   │       ├── routes.py           # /health, /api/products, /api/orders
+│   │       ├── routes.py           # Endpoints + /api/simulator/ controls
 │   │       └── seed.py             # Initial catalog seeder
 │   └── traffic_generator.py        # Synthetic customer traffic script
 │
 ├── tests/                          # Automated Tests
 │   ├── conftest.py                 # Isolated test fixtures
-│   ├── unit/                       # Unit tests (models, config, generator)
-│   └── integration/                # Integration tests (APIs, DB workflows)
+│   ├── unit/                       # Unit tests (models, config, failure injection)
+│   └── integration/                # Integration tests (APIs, E2E telemetry, INC-001)
 │
 └── docs/                           # Architecture & Decisions
     ├── architecture/
@@ -197,13 +207,43 @@ curl -X POST http://localhost:8001/api/orders \
 curl http://localhost:8000/health
 ```
 
+### Failure Injection Controls (Phase 3)
+
+```bash
+# Inject INC-001 (Database Query Regression) via CLI
+python -m simulator.failure_injection.cli inject INC-001
+
+# Inject with customized latency
+python -m simulator.failure_injection.cli inject INC-001 --latency 1200
+
+# Inspect active failures
+python -m simulator.failure_injection.cli status
+
+# Reset all active failures
+python -m simulator.failure_injection.cli reset
+```
+
+Or via HTTP API:
+```bash
+# Inject
+curl -X POST http://localhost:8001/api/simulator/inject \
+  -H "Content-Type: application/json" \
+  -d '{"incident_id": "INC-001", "parameters": {"latency_ms": 1500}}'
+
+# Query status
+curl http://localhost:8001/api/simulator/incidents
+
+# Reset
+curl -X POST http://localhost:8001/api/simulator/reset
+```
+
 ---
 
 ## Development Roadmap
 
 - [x] **Phase 1 — Foundation**: Simulated checkout service, PostgreSQL, Docker Compose, initial catalog, traffic generator, test suite.
 - [x] **Phase 2 — Observability**: Structured JSON logging, OpenTelemetry distributed traces, Prometheus metrics, and correlation IDs.
-- [ ] **Phase 3 — Failure Injection**: Controlled failure scenarios (e.g., `INC-001` Database Query Regression) with ground truth definitions.
+- [x] **Phase 3 — Failure Injection**: Controlled failure scenarios (e.g., `INC-001` Database Query Regression) with ground truth definitions.
 - [ ] **Phase 4 — Evidence Model & Graph**: Time-aware evidence schema, provenance, and graph representation.
 - [ ] **Phase 5 — Single-LLM Baseline**: Baseline diagnostic evaluator.
 - [ ] **Phase 6 — Agent 1: Investigator**: Evidence collection, entity extraction, and timeline construction.

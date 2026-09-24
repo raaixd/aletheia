@@ -1,13 +1,17 @@
 """HTTP endpoints for the simulated Checkout API."""
 
 import logging
+import time
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from aletheia.models.incident import FailureInjectionRequest, FailureStatusResponse
+from aletheia.observability.tracing import get_tracer
+from simulator.failure_injection.manager import failure_manager
 from simulator.services.checkout_api.config import CheckoutSettings, get_checkout_settings
 from simulator.services.checkout_api.database import get_db, check_db_health
 from simulator.services.checkout_api.models import Product, Order, OrderItem
@@ -217,6 +221,25 @@ def list_orders(
     db: Session = Depends(get_db),
 ) -> List[OrderResponse]:
     """Retrieve recent orders with their line items."""
+    # Check if INC-001 (Database Query Regression) is active
+    if failure_manager.is_active("INC-001"):
+        params = failure_manager.get_parameters("INC-001")
+        latency_ms = float(params.get("latency_ms", 1500.0))
+        tracer = get_tracer("checkout-api")
+        with tracer.start_as_current_span("db.query: SELECT orders (unindexed)") as db_span:
+            db_span.set_attribute("db.system", "postgresql")
+            db_span.set_attribute("db.operation", "SELECT")
+            db_span.set_attribute("db.table", "orders")
+            db_span.set_attribute("db.regression", True)
+            db_span.set_attribute("incident.id", "INC-001")
+            db_span.set_attribute("db.latency_ms", latency_ms)
+            time.sleep(latency_ms / 1000.0)
+
+        logger.warning(
+            f"Database query execution delayed by {latency_ms}ms due to unindexed sort regression (INC-001)",
+            extra={"db_latency_ms": latency_ms, "incident_id": "INC-001", "endpoint": "/api/orders"},
+        )
+
     orders = (
         db.query(Order)
         .order_by(Order.created_at.desc())
@@ -284,4 +307,30 @@ def get_order(order_id: int, db: Session = Depends(get_db)) -> OrderResponse:
         total_amount=order.total_amount,
         created_at=order.created_at,
         items=item_responses,
+    )
+
+
+# ------------------------------------------------------------------------------
+# Simulator Failure Injection Controls
+# ------------------------------------------------------------------------------
+
+@router.post("/api/simulator/inject", tags=["Simulator Control"])
+def inject_failure_endpoint(payload: FailureInjectionRequest):
+    """Dynamically inject an incident scenario into the simulator."""
+    return failure_manager.inject(payload.incident_id, payload.parameters)
+
+
+@router.post("/api/simulator/reset", tags=["Simulator Control"])
+def reset_failure_endpoint(incident_id: Optional[str] = None):
+    """Reset active failure injections."""
+    return failure_manager.reset(incident_id)
+
+
+@router.get("/api/simulator/incidents", response_model=FailureStatusResponse, tags=["Simulator Control"])
+def get_incidents_status_endpoint() -> FailureStatusResponse:
+    """Retrieve currently active failure injections."""
+    active = failure_manager.get_all_active()
+    return FailureStatusResponse(
+        active_incidents=active,
+        total_active=len(active),
     )
