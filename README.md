@@ -6,15 +6,19 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
 
 ---
 
-## Current Status: Phase 3 — Failure Injection Complete
+## Current Status: Phase 4 — Evidence Model & Graph Complete
 
 - **Phase 1 (Foundation)**: Simulated checkout service, PostgreSQL 16, Docker Compose, automated product seeding, synthetic traffic generator.
 - **Phase 2 (Observability)**: Correlated telemetry triad across all services (structured JSON logging, context-aware correlation IDs, Prometheus metrics, OpenTelemetry distributed tracing).
-- **Phase 3 (Failure Injection)**: Controlled, reproducible failure injection system:
-  - **`INC-001` (Database Query Regression)**: Simulates release `v4.2.1` (`commit_abc123`) introducing an unindexed sequential scan on order queries, causing elevated database latency and API slowdowns.
-  - **Ground Truth Isolation**: Explicit ground truth specification (`incidents/ground_truth/inc_001_ground_truth.json`) strictly isolated from AI agents for evaluation.
-  - **Dynamic Runtime Controls**: Dynamic injection, parameter override, and instant reset via CLI (`python -m simulator.failure_injection.cli`) and REST API (`/api/simulator/inject`).
-  - **Automated Verification**: 100% passing test suite (30/30 unit, integration, and failure injection tests).
+- **Phase 3 (Failure Injection)**: Controlled, reproducible failure injection system with ground truth isolation (`INC-001` database query regression).
+- **Phase 4 (Evidence Model & Graph)**: Deterministic, time-aware evidence layer without an LLM:
+  - **Evidence Schema & Provenance**: Standardized `EvidenceItem` with immutable audit trail (`source_type`, `source_uri`, `extracted_at`, `raw_reference`).
+  - **Entity Taxonomy**: Normalized entities (`Service`, `Deployment`, `Commit`, `Database`, `Endpoint`, `Metric`, `Error`, `Trace`).
+  - **Explicit Typed Relationships**: Directed edges with types (`INTRODUCED`, `MODIFIED`, `EXECUTES_ON`, `CALLS`, `INCREASED`, `CONTRIBUTED_TO`, `CAUSED`, `PRECEDES`).
+  - **Deterministic Timeline**: Chronologically sorted sequence of events with human-readable ASCII rendering.
+  - **Telemetry Adapters**: Pluggable adapters (`LogAdapter`, `TraceAdapter`, `MetricAdapter`, `DeployAdapter`, `LocalEvidenceSource`).
+  - **Graph Query Engine**: Directed graph with DFS causal path finding, temporal window subgraphs, and GitHub-compatible Mermaid export.
+  - **Automated Verification**: 100% passing test suite (40/40 unit, integration, and E2E graph tests).
 
 ---
 
@@ -36,17 +40,35 @@ aletheia/
 │       └── inc_001_db_regression.json
 │
 ├── src/aletheia/                   # Aletheia Core Platform
-│   ├── api/                        # FastAPI routers & endpoints (/health)
+│   ├── api/                        # FastAPI routers & endpoints (/health, /investigation)
 │   │   ├── routes/
+│   │   │   ├── health.py
+│   │   │   └── investigation.py
 │   │   └── app.py
 │   ├── config/                     # Typed Pydantic Settings
 │   │   └── settings.py
+│   ├── evidence/                   # Deterministic Evidence Layer
+│   │   ├── schema.py               # EvidenceItem & EvidenceProvenance models
+│   │   ├── entities.py             # Entity models & factory functions
+│   │   ├── events.py               # Event models & deterministic Timeline
+│   │   └── sources/                # Telemetry adapters
+│   │       ├── base.py             # EvidenceSource abstract base class
+│   │       ├── local.py            # LocalEvidenceSource aggregator
+│   │       ├── log_adapter.py      # JSON log parser
+│   │       ├── trace_adapter.py    # OpenTelemetry span parser
+│   │       ├── metric_adapter.py   # Prometheus metric anomaly parser
+│   │       └── deploy_adapter.py   # Release & commit metadata parser
+│   ├── graph/                      # Evidence Graph & Query Engine
+│   │   ├── schema.py               # GraphNode, GraphEdge, RelationshipType
+│   │   ├── graph.py                # Directed EvidenceGraph & path finder
+│   │   ├── builder.py              # Deterministic graph constructor
+│   │   └── cli.py                  # CLI inspector (timeline, paths, mermaid)
 │   ├── observability/              # Telemetry Triad (Logging, Tracing, Metrics)
 │   │   ├── logging.py              # Structured JSON formatter & correlation context
 │   │   ├── tracing.py              # OpenTelemetry TracerProvider & span utilities
 │   │   ├── metrics.py              # Prometheus metric definitions & /metrics endpoint
 │   │   └── middleware.py           # FastAPI ObservabilityMiddleware
-│   ├── models/                     # Evidence, incident & ground truth models
+│   ├── models/                     # Incident & failure injection models
 │   │   └── incident.py
 │   └── services/                   # Investigation orchestration (future phases)
 │
@@ -235,6 +257,32 @@ curl http://localhost:8001/api/simulator/incidents
 
 # Reset
 curl -X POST http://localhost:8001/api/simulator/reset
+### Evidence Graph & Timeline Inspection (Phase 4)
+
+```bash
+# Print reconstructed incident timeline (ASCII)
+python -m aletheia.graph.cli --inspect-inc001 --timeline
+
+# Discover causal paths from Deployment to API Latency Spike
+python -m aletheia.graph.cli --inspect-inc001 --paths
+
+# Export graph as GitHub Mermaid diagram
+python -m aletheia.graph.cli --inspect-inc001 --mermaid
+
+# Export graph as structured JSON
+python -m aletheia.graph.cli --inspect-inc001 --json
+```
+
+Or query via Aletheia REST API:
+```bash
+# Get chronological timeline
+curl http://localhost:8000/api/v1/investigation/timeline
+
+# Get full evidence graph
+curl http://localhost:8000/api/v1/investigation/graph
+
+# Find causal paths
+curl "http://localhost:8000/api/v1/investigation/paths?source=deploy:checkout-api:v4.2.1&target=evt:EVT-005"
 ```
 
 ---
@@ -244,7 +292,7 @@ curl -X POST http://localhost:8001/api/simulator/reset
 - [x] **Phase 1 — Foundation**: Simulated checkout service, PostgreSQL, Docker Compose, initial catalog, traffic generator, test suite.
 - [x] **Phase 2 — Observability**: Structured JSON logging, OpenTelemetry distributed traces, Prometheus metrics, and correlation IDs.
 - [x] **Phase 3 — Failure Injection**: Controlled failure scenarios (e.g., `INC-001` Database Query Regression) with ground truth definitions.
-- [ ] **Phase 4 — Evidence Model & Graph**: Time-aware evidence schema, provenance, and graph representation.
+- [x] **Phase 4 — Evidence Model & Graph**: Time-aware evidence schema, provenance, entity models, deterministic timeline, and evidence graph query engine.
 - [ ] **Phase 5 — Single-LLM Baseline**: Baseline diagnostic evaluator.
 - [ ] **Phase 6 — Agent 1: Investigator**: Evidence collection, entity extraction, and timeline construction.
 - [ ] **Phase 7 — Agent 2: Analyst**: Multi-hypothesis generation with supporting and contradicting evidence.

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from aletheia.api.routes.health import router as health_router
+from aletheia.api.routes.investigation import router as investigation_router
 from aletheia.config.settings import get_settings
 from aletheia.observability.logging import setup_logging
 from aletheia.observability.metrics import metrics_router
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     # Register routers
     app.include_router(health_router)
     app.include_router(metrics_router)
+    app.include_router(investigation_router)
 
     return app
 
