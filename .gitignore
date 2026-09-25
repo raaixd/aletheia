@@ -46,3 +46,16 @@ htmlcov/
 # Docker
 *.log
 docker-volumes/
+
+# Node & Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Evaluation outputs
+eval_results/runs/*.json
+eval_results/benchmarks/*.json
+eval_results/BENCH-*.json
+eval_results/traces/*.jsonl
+

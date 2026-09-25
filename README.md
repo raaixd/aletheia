@@ -43,9 +43,18 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
   - **Exponential Backoff Resilience**: `@retry_with_backoff` handling transient network drops, rate limits (HTTP 429), and API timeouts with jitter.
   - **Evaluation Run Storage & Comparison Engine**: Automatic persistence to disk (`eval_results/runs/`, `eval_results/benchmarks/`) with pairwise run diffing (`compare_runs`).
   - **LLMOps API**: `/api/v1/llmops/traces`, `/api/v1/llmops/metrics`, `/api/v1/llmops/runs`, and `/api/v1/llmops/compare`.
-  - **Automated Verification**: 100% passing test suite (98/98 tests, 87% coverage).
+- **Phase 9 (Developer-Grade Frontend & Investigation Interface)**:
+  - **Minimalist Obsidian UI**: Built with Next.js 16 and Vanilla CSS; dark obsidian aesthetic (`#09090b`), restrained typography, monospaced metadata badges, zero visual clutter or gratuitous gradients.
+  - **Linear Diagnostic Narrative**: Guided progression designed specifically for incident commanders:
+    `Incident -> Timeline -> Evidence Layer -> Analyst Hypotheses -> Verifier Challenges -> Final Diagnosis`.
+  - **Dedicated Operational Views**:
+    - **Incidents Catalog**: Filterable catalog of all 20 reproducible incident scenarios with severity levels and categories.
+    - **Evidence Graph**: Focused causal dependency chain connecting deployments, commits, spans, and metrics.
+    - **Comparative Benchmark**: 3-way evaluation comparison demonstrating measurable performance against single-model and 2-agent baselines.
+    - **System & LLMOps**: Telemetry traces, live token usage accounting, and latency percentiles.
+  - **Live Backend Integration**: Direct proxy architecture (`/api/backend/*`) connecting the web client to the FastAPI investigation engine.
+  - **Quality Gate Verification**: 100% passing tests (98/98 tests), static compilation verified via `npm run build`, and API proxy validated.
 
----
 
 ## Repository Structure
 

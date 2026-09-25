@@ -67,3 +67,76 @@ def get_causal_paths(
         "path_count": len(paths),
         "paths": formatted,
     }
+
+
+@router.get("/incidents")
+def list_incidents() -> List[Dict[str, Any]]:
+    """List all available incident scenarios with metadata."""
+    import json
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+    scenarios_dir = repo_root / "incidents" / "scenarios"
+    incidents = []
+    if scenarios_dir.exists():
+        for p in sorted(scenarios_dir.glob("*.json")):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                incidents.append({
+                    "incident_id": data.get("incident_id", p.stem.replace("_scenario", "").upper()),
+                    "name": data.get("name", ""),
+                    "category": data.get("category", "system"),
+                    "severity": data.get("severity", "CRITICAL"),
+                    "affected_service": data.get("affected_service", "checkout-api"),
+                    "description": data.get("description", ""),
+                })
+            except Exception:
+                continue
+    return incidents
+
+
+@router.post("/diagnose/{incident_id}")
+def diagnose_incident(
+    incident_id: str,
+    system: str = Query("aletheia-3agent", description="System: aletheia-3agent, two-agent, single-llm"),
+) -> Dict[str, Any]:
+    """Run full diagnostic workflow on any incident and return complete agent outputs and scorecard."""
+    from aletheia.agents.orchestrator import AletheiaMultiAgentSystem
+    from aletheia.evaluation.baselines.single_llm import SingleLLMBaseline
+    from aletheia.evaluation.baselines.two_agent import TwoAgentBaseline
+    from aletheia.evaluation.harness import EvaluationHarness
+    from aletheia.evaluation.loader import load_incident_telemetry
+
+    alert_desc, items, timeline = load_incident_telemetry(incident_id)
+    harness = EvaluationHarness()
+
+    if system == "aletheia-3agent":
+        sys_instance = AletheiaMultiAgentSystem()
+    elif system in ("two-agent", "baseline-b"):
+        sys_instance = TwoAgentBaseline()
+    else:
+        sys_instance = SingleLLMBaseline()
+
+    eval_report = harness.evaluate(sys_instance, incident_id=incident_id)
+
+    agent_steps = {}
+    if system == "aletheia-3agent":
+        mas = AletheiaMultiAgentSystem()
+        ctx = mas.workflow.investigator.investigate(incident_id, alert_desc, items, timeline)
+        ana = mas.workflow.analyst.analyze(ctx)
+        ver = mas.workflow.verifier.verify(ana, ctx)
+        agent_steps = {
+            "investigator": ctx.model_dump(),
+            "analyst": ana.model_dump(),
+            "verifier": ver.model_dump(),
+        }
+
+    return {
+        "incident_id": incident_id,
+        "system": system,
+        "diagnosis": eval_report.diagnosis.model_dump() if eval_report.diagnosis else {},
+        "evaluation": eval_report.model_dump(),
+        "agent_steps": agent_steps,
+        "telemetry_count": len(items),
+        "timeline_events": [e.model_dump() for e in timeline.get_events()],
+    }
