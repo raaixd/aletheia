@@ -317,3 +317,91 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--crimson-blue-border);
 }
+
+/* Breadcrumbs */
+.breadcrumb-trail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.breadcrumb-trail button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb-trail button:hover {
+  color: var(--text-primary);
+}
+
+.breadcrumb-separator {
+  color: var(--text-faint);
+}
+
+/* Investigation Workflow Stepper */
+.workflow-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0 16px 0;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--border-hairline);
+  overflow-x: auto;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.step-item.completed {
+  color: var(--verified-emerald);
+}
+
+.step-item.active {
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.step-arrow {
+  color: var(--border-subtle);
+  font-size: 0.75rem;
+}
+
+/* Page Header Standard */
+.page-header-block {
+  margin-bottom: 32px;
+}
+
+.page-header-title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.page-header-desc {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  max-width: 700px;
+  line-height: 1.5;
+}
+

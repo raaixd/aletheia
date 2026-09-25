@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { INITIAL_INCIDENTS } from "./data";
 import { SonarGrid } from "@/components/ui/sonar-grid";
 import { AnimatedAIChat } from "@/components/ui/animated-ai-chat";
@@ -14,13 +14,17 @@ import {
   Hypothesis,
 } from "./types";
 
+type NavTab = "overview" | "investigations" | "incidents" | "evidence" | "evaluations" | "system";
+
 export default function AletheiaApp() {
   const [incidents, setIncidents] = useState<IncidentMetadata[]>(INITIAL_INCIDENTS);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>("INC-001");
   const [selectedSystem, setSelectedSystem] = useState<string>("aletheia-3agent");
-  const [activeNav, setActiveNav] = useState<"overview" | "investigate" | "incidents" | "graph" | "evaluations" | "system">("overview");
+  const [activeNav, setActiveNav] = useState<NavTab>("overview");
+  const [viewingSpecificInvestigation, setViewingSpecificInvestigation] = useState<boolean>(true);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [runningStep, setRunningStep] = useState<number>(0);
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationReport | null>(null);
@@ -29,13 +33,62 @@ export default function AletheiaApp() {
   const [traces, setTraces] = useState<LLMTrace[]>([]);
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
   const [selectedGraphNode, setSelectedGraphNode] = useState<string | null>("node-query");
+  const [evidenceViewMode, setEvidenceViewMode] = useState<"graph" | "table">("graph");
   const [filterSeverity, setFilterSeverity] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [investigationFilter, setInvestigationFilter] = useState<string>("ALL");
   const [expandedHypothesisId, setExpandedHypothesisId] = useState<string | null>("HYP-001");
   const [expandedTimelineId, setExpandedTimelineId] = useState<string | null>(null);
   const [expandedEvidenceId, setExpandedEvidenceId] = useState<string | null>(null);
 
   const currentIncident = incidents.find((i) => i.incident_id === selectedIncidentId) || incidents[0];
+
+  // URL Query Sync: update URL without page reload
+  const updateUrl = useCallback((tab: NavTab, incId?: string) => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", tab);
+    if (incId) {
+      params.set("id", incId);
+    }
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ tab, id: incId }, "", newUrl);
+  }, []);
+
+  // Set active tab and sync URL
+  const navigateToTab = (tab: NavTab, incId?: string, openSpecific = true) => {
+    setActiveNav(tab);
+    if (tab === "investigations") {
+      setViewingSpecificInvestigation(openSpecific);
+    }
+    if (incId) {
+      setSelectedIncidentId(incId);
+    }
+    updateUrl(tab, incId || selectedIncidentId);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Sync state from URL on initial load and handle browser back/forward
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") as NavTab | null;
+      const idParam = params.get("id");
+
+      if (tabParam && ["overview", "investigations", "incidents", "evidence", "evaluations", "system"].includes(tabParam)) {
+        setActiveNav(tabParam);
+      }
+      if (idParam) {
+        setSelectedIncidentId(idParam);
+      }
+    };
+
+    // Read initial URL
+    handlePopState();
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // Track header scroll state
   useEffect(() => {
@@ -67,11 +120,22 @@ export default function AletheiaApp() {
   // Run Investigation against backend API
   const runInvestigation = async (incId: string = selectedIncidentId, sys: string = selectedSystem) => {
     setIsLoading(true);
+    setRunningStep(1); // Timeline step
+
+    const stepTimer1 = setTimeout(() => setRunningStep(2), 250); // Evidence step
+    const stepTimer2 = setTimeout(() => setRunningStep(3), 500); // Hypotheses step
+    const stepTimer3 = setTimeout(() => setRunningStep(4), 750); // Verification step
+
     try {
       const res = await fetch(
         `/api/backend/api/v1/investigation/diagnose/${incId}?system=${sys}`,
         { method: "POST" }
       );
+
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      clearTimeout(stepTimer3);
+      setRunningStep(5); // Diagnosis step
 
       if (res.ok) {
         const data = await res.json();
@@ -93,6 +157,7 @@ export default function AletheiaApp() {
       generateLocalFallback(incId, sys);
     } finally {
       setIsLoading(false);
+      setRunningStep(6); // Complete
     }
   };
 
@@ -140,7 +205,7 @@ export default function AletheiaApp() {
     setTimelineEvents([
       {
         event_id: "EVT-001",
-        timestamp: "02:00:00",
+        timestamp: "02:00:00 UTC",
         type: "traffic",
         service: inc.affected_service,
         summary: "Normal baseline traffic (45ms P99, 0.01% error rate)",
@@ -148,7 +213,7 @@ export default function AletheiaApp() {
       },
       {
         event_id: "EVT-002",
-        timestamp: "02:02:15",
+        timestamp: "02:02:15 UTC",
         type: "deployment",
         service: inc.affected_service,
         summary: `Deployment ${inc.affected_service}:v4.2.1 applied to production`,
@@ -156,7 +221,7 @@ export default function AletheiaApp() {
       },
       {
         event_id: "EVT-003",
-        timestamp: "02:03:40",
+        timestamp: "02:03:40 UTC",
         type: "commit",
         service: inc.affected_service,
         summary: "Commit abc12348f9: Modified query sort order on orders lookup",
@@ -164,7 +229,7 @@ export default function AletheiaApp() {
       },
       {
         event_id: "EVT-004",
-        timestamp: "02:04:30",
+        timestamp: "02:04:30 UTC",
         type: "span",
         service: inc.affected_service,
         summary: "db.query orders latency escalated: 3ms → 1850ms (Seq Scan on orders)",
@@ -172,7 +237,7 @@ export default function AletheiaApp() {
       },
       {
         event_id: "EVT-005",
-        timestamp: "02:05:00",
+        timestamp: "02:05:00 UTC",
         type: "metric",
         service: inc.affected_service,
         summary: "API P99 latency breached SLA threshold (1800ms) with 12.5% errors",
@@ -310,13 +375,20 @@ export default function AletheiaApp() {
     return matchesSev && matchesQuery;
   });
 
-  // Current selected evidence item dictionary
+  // Filtered investigations list
+  const filteredInvestigations = incidents.filter((inc) => {
+    if (investigationFilter === "COMPLETED") return inc.incident_id === "INC-001";
+    if (investigationFilter === "CRITICAL") return inc.severity === "CRITICAL";
+    return true;
+  });
+
+  // Evidence dictionary for provenance lookup
   const evidenceRecords: Record<string, { id: string; source: string; timestamp: string; title: string; component: string; payload: Record<string, any>; verified: boolean }> = {
     "EV-DEP-0001": {
       id: "EV-DEP-0001",
       source: "DEPLOYMENT",
       timestamp: "02:02:15 UTC",
-      title: "Deployment checkout-api:v4.2.1 applied to cluster",
+      title: "Deployment checkout-api:v4.2.1 applied to production cluster",
       component: "checkout-api",
       payload: {
         service: "checkout-api",
@@ -363,7 +435,7 @@ export default function AletheiaApp() {
       id: "EV-METRIC-0001",
       source: "PROMETHEUS",
       timestamp: "02:00:00 UTC",
-      title: "Normal traffic baseline: 45ms P99, 0.01% error rate",
+      title: "Normal baseline traffic: 45ms P99, 0.01% error rate",
       component: "checkout-api",
       payload: {
         metric: "http_request_duration_seconds{quantile='0.99'}",
@@ -403,7 +475,7 @@ export default function AletheiaApp() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* ========================================================================= */}
-      {/* 1. SLIM INSTRUMENT TOP BAR (WITH ADAPTIVE SCROLL BLUR) */}
+      {/* 1. GLOBAL NAVIGATION HEADER (WHERE AM I?) */}
       {/* ========================================================================= */}
       <header
         style={{
@@ -428,10 +500,10 @@ export default function AletheiaApp() {
             width: "100%",
           }}
         >
-          {/* Brand */}
+          {/* Brand Wordmark */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
-              onClick={() => setActiveNav("overview")}
+              onClick={() => navigateToTab("overview")}
               style={{
                 background: "none",
                 border: "none",
@@ -476,56 +548,59 @@ export default function AletheiaApp() {
             </span>
           </div>
 
-          {/* Navigation Tabs */}
+          {/* Primary Navigation (6 Core Concepts) */}
           <nav style={{ display: "flex", alignItems: "center", gap: "2px" }}>
             <button
               className={`btn-instrument-nav ${activeNav === "overview" ? "active" : ""}`}
-              onClick={() => setActiveNav("overview")}
+              onClick={() => navigateToTab("overview")}
             >
               Overview
             </button>
             <button
-              className={`btn-instrument-nav ${activeNav === "investigate" ? "active" : ""}`}
-              onClick={() => setActiveNav("investigate")}
+              className={`btn-instrument-nav ${activeNav === "investigations" ? "active" : ""}`}
+              onClick={() => navigateToTab("investigations")}
             >
-              Investigate
+              Investigations
             </button>
             <button
               className={`btn-instrument-nav ${activeNav === "incidents" ? "active" : ""}`}
-              onClick={() => setActiveNav("incidents")}
+              onClick={() => navigateToTab("incidents")}
             >
               Incidents
             </button>
             <button
-              className={`btn-instrument-nav ${activeNav === "graph" ? "active" : ""}`}
-              onClick={() => setActiveNav("graph")}
+              className={`btn-instrument-nav ${activeNav === "evidence" ? "active" : ""}`}
+              onClick={() => navigateToTab("evidence")}
             >
-              Evidence Map
+              Evidence
             </button>
             <button
               className={`btn-instrument-nav ${activeNav === "evaluations" ? "active" : ""}`}
-              onClick={() => setActiveNav("evaluations")}
+              onClick={() => navigateToTab("evaluations")}
             >
               Evaluations
             </button>
             <button
               className={`btn-instrument-nav ${activeNav === "system" ? "active" : ""}`}
-              onClick={() => setActiveNav("system")}
+              onClick={() => navigateToTab("system")}
             >
               System
             </button>
           </nav>
 
-          {/* Controls: Quick Switcher & Diagnose */}
+          {/* Utility Quick Switcher */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <select
               value={selectedIncidentId}
               onChange={(e) => {
-                setSelectedIncidentId(e.target.value);
-                runInvestigation(e.target.value, selectedSystem);
+                const newId = e.target.value;
+                setSelectedIncidentId(newId);
+                runInvestigation(newId, selectedSystem);
+                updateUrl(activeNav, newId);
               }}
               className="input-instrument"
               style={{ height: "30px", padding: "0 6px", fontSize: "0.75rem" }}
+              title="Active incident scenario"
             >
               {incidents.slice(0, 8).map((inc) => (
                 <option key={inc.incident_id} value={inc.incident_id}>
@@ -534,27 +609,16 @@ export default function AletheiaApp() {
               ))}
             </select>
 
-            <select
-              value={selectedSystem}
-              onChange={(e) => {
-                setSelectedSystem(e.target.value);
-                runInvestigation(selectedIncidentId, e.target.value);
-              }}
-              className="input-instrument"
-              style={{ height: "30px", padding: "0 6px", fontSize: "0.75rem" }}
-            >
-              <option value="aletheia-3agent">3-Agent Aletheia</option>
-              <option value="two-agent">2-Agent Baseline</option>
-              <option value="single-llm">Single-LLM Baseline</option>
-            </select>
-
             <button
-              onClick={() => runInvestigation(selectedIncidentId, selectedSystem)}
+              onClick={() => {
+                navigateToTab("investigations", selectedIncidentId, true);
+                runInvestigation(selectedIncidentId, selectedSystem);
+              }}
               disabled={isLoading}
               className="btn-instrument btn-instrument-primary"
               style={{ height: "30px", padding: "0 12px", fontSize: "0.75rem" }}
             >
-              {isLoading ? "Diagnosing..." : "Reconstruct"}
+              {isLoading ? "Investigating..." : "Diagnose"}
             </button>
           </div>
         </div>
@@ -563,7 +627,7 @@ export default function AletheiaApp() {
       {/* Main Viewport */}
       <main style={{ flex: 1, paddingBottom: "80px" }}>
         {/* ========================================================================= */}
-        {/* VIEW 1: OVERVIEW / LANDING WITH SONAR GRID BACKGROUND */}
+        {/* 1. OVERVIEW PAGE ("What is happening right now?") */}
         {/* ========================================================================= */}
         {activeNav === "overview" && (
           <div>
@@ -572,7 +636,7 @@ export default function AletheiaApp() {
               style={{
                 position: "relative",
                 overflow: "hidden",
-                minHeight: "540px",
+                minHeight: "520px",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -581,7 +645,6 @@ export default function AletheiaApp() {
                 textAlign: "center",
               }}
             >
-              {/* Subtle Sonar Grid Canvas */}
               <SonarGrid
                 gridSize={34}
                 dotRadius={1}
@@ -592,28 +655,11 @@ export default function AletheiaApp() {
                 interactive={true}
               />
 
-              {/* Centered Hero Content */}
-              <div
-                style={{
-                  position: "relative",
-                  zIndex: 10,
-                  maxWidth: "820px",
-                  margin: "0 auto",
-                }}
-              >
-                {/* 1. Eyebrow */}
-                <div
-                  className="section-tag"
-                  style={{
-                    display: "inline-flex",
-                    justifyContent: "center",
-                    marginBottom: "16px",
-                  }}
-                >
+              <div style={{ position: "relative", zIndex: 10, maxWidth: "800px", margin: "0 auto" }}>
+                <div className="section-tag" style={{ display: "inline-flex", justifyContent: "center", marginBottom: "16px" }}>
                   ALETHEIA // INCIDENT INVESTIGATION INSTRUMENT
                 </div>
 
-                {/* 2. Large Headline */}
                 <h1
                   style={{
                     fontSize: "3.2rem",
@@ -629,7 +675,6 @@ export default function AletheiaApp() {
                   BEHIND THE FAILURE.
                 </h1>
 
-                {/* 3. Short Description */}
                 <p
                   style={{
                     fontSize: "1.1rem",
@@ -644,39 +689,29 @@ export default function AletheiaApp() {
                   Reconstructs what happened, evaluates competing explanations, and verifies conclusions against system evidence.
                 </p>
 
-                {/* 4. Primary & Secondary CTAs */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "12px",
-                    marginBottom: "40px",
-                  }}
-                >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "36px" }}>
                   <button
-                    onClick={() => setActiveNav("investigate")}
+                    onClick={() => navigateToTab("investigations", "INC-001", true)}
                     className="btn-instrument btn-instrument-primary"
                     style={{ padding: "8px 22px", fontSize: "0.875rem" }}
                   >
-                    Investigate an Incident
+                    Start Investigation →
                   </button>
                   <button
-                    onClick={() => setActiveNav("evaluations")}
+                    onClick={() => navigateToTab("evaluations")}
                     className="btn-instrument btn-instrument-ghost"
                     style={{ padding: "8px 18px", fontSize: "0.875rem" }}
                   >
-                    View Evaluations
+                    Benchmark Evaluations
                   </button>
                 </div>
 
-                {/* 5. Aletheia Investigation Search & Command Bar */}
+                {/* Sleek Incident Command Input */}
                 <AnimatedAIChat
                   incidents={incidents}
                   selectedIncidentId={selectedIncidentId}
                   onSelectAndDiagnose={(incId) => {
-                    setSelectedIncidentId(incId);
-                    setActiveNav("investigate");
+                    navigateToTab("investigations", incId, true);
                     runInvestigation(incId, selectedSystem);
                   }}
                   isLoading={isLoading}
@@ -684,90 +719,82 @@ export default function AletheiaApp() {
               </div>
             </div>
 
-            {/* Container for Content Below the Hero */}
+            {/* Content Below Hero */}
             <div className="container-instrument" style={{ paddingTop: "24px" }}>
-              {/* Active Incident Preview Strip */}
-              <div
-                style={{
-                  borderTop: "1px solid var(--border-subtle)",
-                  borderBottom: "1px solid var(--border-subtle)",
-                  padding: "28px 0",
-                  marginBottom: "56px",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "16px" }}>
+              {/* Section: Active & Recent Investigations */}
+              <div style={{ marginBottom: "56px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "16px" }}>
                   <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", marginBottom: "4px" }}>
-                      {currentIncident.incident_id} · {currentIncident.affected_service}
-                    </div>
-                    <h2 style={{ fontSize: "1.45rem", fontWeight: 600, color: "#ffffff", letterSpacing: "-0.01em" }}>
-                      {currentIncident.name}
+                    <div className="section-tag">// ACTIVE & RECENT INVESTIGATIONS</div>
+                    <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#fff" }}>
+                      Production Incidents
                     </h2>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                      CRITICAL SEVERITY · INVESTIGATION COMPLETE
-                    </div>
                   </div>
-
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      onClick={() => setActiveNav("investigate")}
-                      className="btn-instrument btn-instrument-ghost"
-                      style={{ fontSize: "0.75rem" }}
-                    >
-                      Open Full Narrative →
-                    </button>
-                    <button
-                      onClick={() => setActiveNav("graph")}
-                      className="btn-instrument btn-instrument-ghost"
-                      style={{ fontSize: "0.75rem" }}
-                    >
-                      Evidence Map
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => navigateToTab("investigations", undefined, false)}
+                    className="btn-instrument btn-instrument-ghost"
+                    style={{ fontSize: "0.75rem" }}
+                  >
+                    View All Investigations →
+                  </button>
                 </div>
 
-                {/* Minimalist Chronological Progression Row */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: "16px",
-                    paddingTop: "16px",
-                    borderTop: "1px solid var(--border-hairline)",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>02:00 Baseline</div>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "2px" }}>Normal traffic (45ms P99)</div>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-blue-accent)" }}>02:02 Deployment</div>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--text-primary)", marginTop: "2px" }}>v4.2.1 release applied</div>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--status-amber)" }}>02:03 Query modified</div>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--text-primary)", marginTop: "2px" }}>Commit abc12348f9 sort altered</div>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-red)" }}>02:04 DB latency surge</div>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--crimson-red-text)", marginTop: "2px" }}>db.query 1850ms (Seq Scan)</div>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-red)" }}>02:05 SLA breach</div>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--crimson-red-text)", marginTop: "2px" }}>P99 spiked to 1800ms</div>
-                  </div>
+                <div style={{ borderTop: "1px solid var(--border-subtle)", borderBottom: "1px solid var(--border-subtle)" }}>
+                  {incidents.slice(0, 4).map((inc) => (
+                    <div
+                      key={inc.incident_id}
+                      style={{
+                        padding: "16px 0",
+                        borderBottom: "1px solid var(--border-hairline)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "16px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "16px", flex: 1 }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", width: "65px" }}>
+                          {inc.incident_id}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#fff" }}>
+                            {inc.name}
+                          </span>
+                          <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginLeft: "12px" }}>
+                            {inc.affected_service}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <span style={{ fontSize: "0.75rem", color: inc.incident_id === "INC-001" ? "var(--verified-emerald)" : "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                          {inc.incident_id === "INC-001" ? "Investigation Complete" : "Ready to Investigate"}
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigateToTab("investigations", inc.incident_id, true);
+                            runInvestigation(inc.incident_id, selectedSystem);
+                          }}
+                          className="btn-instrument btn-instrument-ghost"
+                          style={{ fontSize: "0.75rem", padding: "4px 12px" }}
+                        >
+                          {inc.incident_id === "INC-001" ? "View Investigation →" : "Investigate →"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Architecture Proof Columns */}
+              {/* Section: Architecture Proof Pillars */}
               <div>
-                <div className="section-tag">INVESTIGATION ARCHITECTURE PILLARS</div>
+                <div className="section-tag">// ARCHITECTURE PROOF PILLARS</div>
                 <div
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                     gap: "32px",
-                    marginTop: "24px",
+                    marginTop: "20px",
                   }}
                 >
                   <div>
@@ -790,7 +817,7 @@ export default function AletheiaApp() {
                       Causal Grounding
                     </div>
                     <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
-                      Evidence precision is held at 100% across all 20 reproducible benchmarks via deterministic DAG graph verification.
+                      Evidence precision is held at 100% across all 20 reproducible benchmarks via deterministic DAG verification.
                     </p>
                   </div>
 
@@ -802,7 +829,7 @@ export default function AletheiaApp() {
                       Adversarial Verifier
                     </div>
                     <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
-                      Independent Verifier agent challenges every analyst hypothesis against temporal order and counter-evidence.
+                      Independent Verifier challenges hypotheses against temporal order, missing data, and counter-evidence.
                     </p>
                   </div>
 
@@ -814,7 +841,7 @@ export default function AletheiaApp() {
                       Benchmark Scenarios
                     </div>
                     <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
-                      Systematically evaluated against diverse failure modes from query regressions to ReDoS and deadlocks.
+                      Systematically evaluated against failure modes from query regressions to ReDoS and deadlocks.
                     </p>
                   </div>
                 </div>
@@ -824,530 +851,607 @@ export default function AletheiaApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 2: INVESTIGATION PAGE — THE PRIMARY VERTICAL NARRATIVE */}
+        {/* 2. INVESTIGATIONS PAGE ("What investigations are available? & Main Workspace") */}
         {/* ========================================================================= */}
-        {activeNav === "investigate" && (
-          <div className="container-instrument" style={{ paddingTop: "48px", maxWidth: "960px" }}>
-            {/* 1. Calm Incident Header */}
-            <div style={{ marginBottom: "48px" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", marginBottom: "4px" }}>
-                {currentIncident.incident_id}
-              </div>
+        {activeNav === "investigations" && (
+          <div className="container-instrument" style={{ paddingTop: "36px", maxWidth: "960px" }}>
+            {/* If user clicked "All Investigations" list view */}
+            {!viewingSpecificInvestigation ? (
+              <div>
+                <div className="page-header-block">
+                  <div className="section-tag">// INVESTIGATIONS DIRECTORY</div>
+                  <h1 className="page-header-title">All Investigations</h1>
+                  <p className="page-header-desc">
+                    Reconstruct incidents, evaluate competing explanations, and verify root causes against observable telemetry.
+                  </p>
+                </div>
 
-              <h1
-                style={{
-                  fontSize: "2.2rem",
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                  color: "#ffffff",
-                  lineHeight: 1.2,
-                  marginBottom: "8px",
-                }}
-              >
-                {currentIncident.name}
-              </h1>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "12px" }}>
-                <span>{currentIncident.affected_service}</span>
-                <span>·</span>
-                <span style={{ color: "var(--crimson-red)" }}>Critical</span>
-                <span>·</span>
-                <span style={{ color: "var(--verified-emerald)" }}>Investigation Complete</span>
-              </div>
-
-              <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                {currentIncident.description}
-              </p>
-            </div>
-
-            <hr className="chapter-divider" />
-
-            {/* 2. What Happened (Timeline) */}
-            <section className="section-chapter">
-              <div className="section-tag">// 01 — WHAT HAPPENED</div>
-              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "24px" }}>
-                Deterministic timeline reconstructed from distributed traces, metrics, and deployments.
-              </p>
-
-              <div style={{ position: "relative", paddingLeft: "24px" }}>
-                {/* Thin vertical line */}
-                <div
-                  style={{
-                    position: "absolute",
-                    left: "6px",
-                    top: "8px",
-                    bottom: "8px",
-                    width: "1px",
-                    backgroundColor: "var(--border-subtle)",
-                  }}
-                />
-
-                {timelineEvents.map((evt) => {
-                  const isExpanded = expandedTimelineId === evt.event_id;
-
-                  return (
-                    <div
-                      key={evt.event_id}
+                {/* Filters */}
+                <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
+                  {["ALL", "COMPLETED", "CRITICAL"].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setInvestigationFilter(f)}
                       style={{
-                        position: "relative",
-                        marginBottom: "20px",
+                        padding: "4px 10px",
+                        fontSize: "0.75rem",
+                        fontFamily: "var(--font-mono)",
+                        borderRadius: "2px",
+                        border: "1px solid",
+                        borderColor: investigationFilter === f ? "var(--crimson-blue-accent)" : "var(--border-subtle)",
+                        backgroundColor: investigationFilter === f ? "var(--crimson-blue-subtle)" : "transparent",
+                        color: investigationFilter === f ? "#fff" : "var(--text-muted)",
                         cursor: "pointer",
                       }}
-                      onClick={() => setExpandedTimelineId(isExpanded ? null : evt.event_id)}
                     >
-                      {/* Quiet dot */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: "-21px",
-                          top: "6px",
-                          width: "7px",
-                          height: "7px",
-                          borderRadius: "50%",
-                          backgroundColor:
-                            evt.type === "deployment"
-                              ? "var(--crimson-blue-accent)"
-                              : evt.type === "span" || evt.type === "metric"
-                              ? "var(--crimson-red)"
-                              : "var(--text-muted)",
-                        }}
-                      />
+                      {f}
+                    </button>
+                  ))}
+                </div>
 
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", width: "65px" }}>
-                          {evt.timestamp}
-                        </span>
-                        <span style={{ fontSize: "0.9375rem", color: "var(--text-primary)", fontWeight: 500, flex: 1 }}>
-                          {evt.summary}
-                        </span>
-                        {evt.evidence_ids && evt.evidence_ids.map((evId) => (
-                          <span
-                            key={evId}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedEvidenceId(evId);
-                            }}
-                            className="ev-ref"
-                          >
-                            {evId}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Progressive disclosure on click */}
-                      {isExpanded && (
-                        <div
-                          style={{
-                            marginTop: "8px",
-                            marginLeft: "77px",
-                            fontSize: "0.75rem",
-                            fontFamily: "var(--font-mono)",
-                            color: "var(--text-muted)",
-                            backgroundColor: "var(--bg-surface)",
-                            padding: "8px 12px",
-                            borderRadius: "var(--radius-xs)",
-                            border: "1px solid var(--border-hairline)",
-                          }}
-                        >
-                          <div>Service: {evt.service}</div>
-                          <div>Event Type: {evt.type}</div>
-                          <div>Event ID: {evt.event_id}</div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <hr className="chapter-divider" />
-
-            {/* 3. Evidence (Indexed Record) */}
-            <section className="section-chapter">
-              <div className="section-tag">// 02 — EVIDENCE</div>
-              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
-                Observable telemetry records queried from Evidence Graph.
-              </p>
-
-              <div>
-                {[
-                  {
-                    id: "EV-DEP-0001",
-                    source: "OpenTelemetry",
-                    time: "02:02:15",
-                    observation: "Release checkout-api:v4.2.1 applied to production cluster",
-                    service: "checkout-api",
-                  },
-                  {
-                    id: "EV-GIT-0001",
-                    source: "Git",
-                    time: "02:03:40",
-                    observation: "Commit abc12348f9 modified query sort order on orders lookup",
-                    service: "checkout-api",
-                  },
-                  {
-                    id: "EV-SPAN-0001",
-                    source: "OpenTelemetry",
-                    time: "02:04:30",
-                    observation: "Database query duration: 3ms → 1850ms (Seq Scan on orders table)",
-                    service: "checkout-api · PostgreSQL",
-                  },
-                  {
-                    id: "EV-METRIC-0002",
-                    source: "Prometheus",
-                    time: "02:05:00",
-                    observation: "API latency increased: P99 spiked to 1800ms with 12.5% errors",
-                    service: "checkout-api",
-                  },
-                ].map((ev) => {
-                  const isExpanded = expandedEvidenceId === ev.id;
-
-                  return (
+                <div>
+                  {filteredInvestigations.map((inc) => (
                     <div
-                      key={ev.id}
-                      style={{
-                        padding: "14px 0",
-                        borderBottom: "1px solid var(--border-hairline)",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" }}>
-                        <span
-                          className="ev-ref"
-                          onClick={() => setSelectedEvidenceId(ev.id)}
-                        >
-                          {ev.id}
-                        </span>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                          {ev.time}
-                        </span>
-                      </div>
-
-                      <div style={{ fontSize: "0.9375rem", color: "#f1f5f9", marginTop: "2px", fontWeight: 500 }}>
-                        {ev.observation}
-                      </div>
-
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
-                        <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
-                          {ev.service}
-                        </span>
-                        <button
-                          onClick={() => setExpandedEvidenceId(isExpanded ? null : ev.id)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "var(--text-muted)",
-                            fontSize: "0.75rem",
-                            cursor: "pointer",
-                            padding: 0,
-                          }}
-                        >
-                          {isExpanded ? "Hide details ↑" : "View details →"}
-                        </button>
-                      </div>
-
-                      {/* Expanded Evidence Details */}
-                      {isExpanded && (
-                        <div
-                          style={{
-                            marginTop: "10px",
-                            padding: "12px",
-                            backgroundColor: "var(--bg-surface)",
-                            borderRadius: "var(--radius-xs)",
-                            border: "1px solid var(--border-subtle)",
-                            fontSize: "0.75rem",
-                            fontFamily: "var(--font-mono)",
-                            color: "var(--text-secondary)",
-                          }}
-                        >
-                          <div>Source: {ev.source}</div>
-                          <div>Telemetry Record: {ev.id}</div>
-                          <div>Status: Verified Grounded</div>
-                          <div style={{ marginTop: "6px" }}>
-                            <button
-                              onClick={() => setSelectedEvidenceId(ev.id)}
-                              className="btn-instrument btn-instrument-ghost"
-                              style={{ fontSize: "0.6875rem", padding: "3px 8px" }}
-                            >
-                              Inspect Raw JSON →
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <hr className="chapter-divider" />
-
-            {/* 4. Hypotheses (Competing Explanations) */}
-            <section className="section-chapter">
-              <div className="section-tag">// 03 — WHAT COULD HAVE CAUSED IT?</div>
-              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
-                Competing explanations evaluated against evidence.
-              </p>
-
-              <div>
-                {(agentSteps?.analyst?.hypotheses || []).map((hyp: Hypothesis, idx: number) => {
-                  const isExpanded = expandedHypothesisId === hyp.hypothesis_id;
-                  const isSupported = hyp.supporting_evidence_ids.length > 0 && hyp.contradicting_evidence_ids.length === 0;
-
-                  return (
-                    <div
-                      key={hyp.hypothesis_id}
+                      key={inc.incident_id}
                       style={{
                         padding: "16px 0",
                         borderBottom: "1px solid var(--border-hairline)",
+                        display: "flex",
+                        alignItems: "baseline",
+                        justifyContent: "space-between",
+                        gap: "16px",
                       }}
                     >
-                      <div
-                        style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", cursor: "pointer" }}
-                        onClick={() => setExpandedHypothesisId(isExpanded ? null : hyp.hypothesis_id)}
-                      >
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flex: 1 }}>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-muted)" }}>
-                            {String(idx + 1).padStart(2, "0")}
-                          </span>
-                          <span style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#fff" }}>
-                            {hyp.hypothesis}
-                          </span>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "16px" }}>
-                          <span
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "0.75rem",
-                              color: isSupported ? "var(--verified-emerald)" : "var(--text-muted)",
-                            }}
-                          >
-                            {isSupported ? "Strongly supported" : "Refuted by evidence"}
-                          </span>
-                          <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>
-                            {isExpanded ? "▲" : "▼"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginLeft: "28px", marginTop: "4px" }}>
-                        <span style={{ color: "var(--verified-emerald)" }}>{hyp.supporting_evidence_ids.length} supporting</span>
-                        <span> · </span>
-                        <span style={{ color: hyp.contradicting_evidence_ids.length > 0 ? "var(--crimson-red)" : "var(--text-muted)" }}>
-                          {hyp.contradicting_evidence_ids.length} contradicting
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "16px", flex: 1 }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", width: "65px" }}>
+                          {inc.incident_id}
                         </span>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#fff" }}>
+                            {inc.name}
+                          </span>
+                          <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginLeft: "12px" }}>
+                            {inc.affected_service}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Progressive Disclosure of Evidence References */}
-                      {isExpanded && (
-                        <div style={{ marginTop: "12px", marginLeft: "28px", fontSize: "0.8125rem" }}>
-                          <div style={{ marginBottom: "6px" }}>
-                            <span style={{ color: "var(--text-muted)" }}>Supporting: </span>
-                            {hyp.supporting_evidence_ids.map((id) => (
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <span style={{ fontSize: "0.75rem", color: inc.incident_id === "INC-001" ? "var(--verified-emerald)" : "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                          {inc.incident_id === "INC-001" ? "Completed" : "Ready"}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setSelectedIncidentId(inc.incident_id);
+                            setViewingSpecificInvestigation(true);
+                            updateUrl("investigations", inc.incident_id);
+                            runInvestigation(inc.incident_id, selectedSystem);
+                          }}
+                          className="btn-instrument btn-instrument-ghost"
+                          style={{ fontSize: "0.75rem", padding: "4px 12px" }}
+                        >
+                          Open Investigation →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Specific Incident Investigation Narrative (Primary Experience) */
+              <div>
+                {/* Breadcrumbs (Rule 4 & 21) */}
+                <div className="breadcrumb-trail">
+                  <button onClick={() => setViewingSpecificInvestigation(false)}>
+                    Investigations
+                  </button>
+                  <span className="breadcrumb-separator">/</span>
+                  <span style={{ color: "var(--text-primary)" }}>{currentIncident.incident_id}</span>
+                  <span className="breadcrumb-separator">/</span>
+                  <span>{currentIncident.name}</span>
+                </div>
+
+                {/* 1. INCIDENT HEADER (Rule 9 & 11) */}
+                <div style={{ marginBottom: "28px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+                    <div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", marginBottom: "4px" }}>
+                        {currentIncident.incident_id}
+                      </div>
+
+                      <h1 style={{ fontSize: "2.2rem", fontWeight: 700, letterSpacing: "-0.02em", color: "#ffffff", lineHeight: 1.2, marginBottom: "8px" }}>
+                        {currentIncident.name}
+                      </h1>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "12px" }}>
+                        <span>{currentIncident.affected_service}</span>
+                        <span>·</span>
+                        <span style={{ color: "var(--crimson-red)" }}>Critical</span>
+                        <span>·</span>
+                        <span style={{ color: "var(--verified-emerald)" }}>Investigation Complete</span>
+                      </div>
+
+                      <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.5, maxWidth: "760px" }}>
+                        {currentIncident.description}
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <select
+                        value={selectedSystem}
+                        onChange={(e) => {
+                          setSelectedSystem(e.target.value);
+                          runInvestigation(selectedIncidentId, e.target.value);
+                        }}
+                        className="input-instrument"
+                        style={{ height: "30px", fontSize: "0.75rem" }}
+                      >
+                        <option value="aletheia-3agent">3-Agent Aletheia</option>
+                        <option value="two-agent">2-Agent Baseline</option>
+                        <option value="single-llm">Single-LLM Baseline</option>
+                      </select>
+
+                      <button
+                        onClick={() => runInvestigation(selectedIncidentId, selectedSystem)}
+                        disabled={isLoading}
+                        className="btn-instrument btn-instrument-ghost"
+                        style={{ height: "30px", fontSize: "0.75rem", padding: "0 10px" }}
+                      >
+                        {isLoading ? "Running..." : "Re-run"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. INVESTIGATION PROGRESS STEPPER (Rule 10, 11, 12) */}
+                <div className="workflow-stepper">
+                  <div className={`step-item ${isLoading && runningStep === 1 ? "active" : "completed"}`}>
+                    <span>{isLoading && runningStep === 1 ? "●" : "✓"}</span>
+                    <span>Incident</span>
+                  </div>
+                  <span className="step-arrow">→</span>
+
+                  <div className={`step-item ${isLoading ? (runningStep === 2 ? "active" : runningStep > 2 ? "completed" : "") : "completed"}`}>
+                    <span>{isLoading ? (runningStep === 2 ? "●" : runningStep > 2 ? "✓" : "○") : "✓"}</span>
+                    <span>Timeline</span>
+                  </div>
+                  <span className="step-arrow">→</span>
+
+                  <div className={`step-item ${isLoading ? (runningStep === 3 ? "active" : runningStep > 3 ? "completed" : "") : "completed"}`}>
+                    <span>{isLoading ? (runningStep === 3 ? "●" : runningStep > 3 ? "✓" : "○") : "✓"}</span>
+                    <span>Evidence</span>
+                  </div>
+                  <span className="step-arrow">→</span>
+
+                  <div className={`step-item ${isLoading ? (runningStep === 4 ? "active" : runningStep > 4 ? "completed" : "") : "completed"}`}>
+                    <span>{isLoading ? (runningStep === 4 ? "●" : runningStep > 4 ? "✓" : "○") : "✓"}</span>
+                    <span>Hypotheses</span>
+                  </div>
+                  <span className="step-arrow">→</span>
+
+                  <div className={`step-item ${isLoading ? (runningStep === 5 ? "active" : runningStep > 5 ? "completed" : "") : "completed"}`}>
+                    <span>{isLoading ? (runningStep === 5 ? "●" : runningStep > 5 ? "✓" : "○") : "✓"}</span>
+                    <span>Verification</span>
+                  </div>
+                  <span className="step-arrow">→</span>
+
+                  <div className={`step-item ${isLoading ? (runningStep === 6 ? "completed" : "") : "completed"}`}>
+                    <span>{isLoading ? (runningStep === 6 ? "✓" : "○") : "✓"}</span>
+                    <span>Diagnosis</span>
+                  </div>
+                </div>
+
+                {/* 3. WHAT HAPPENED */}
+                <section className="section-chapter">
+                  <div className="section-tag">// 01 — WHAT HAPPENED</div>
+                  <p style={{ fontSize: "0.9375rem", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "16px" }}>
+                    At 02:02 UTC, release <code>v4.2.1</code> was deployed to the production cluster containing commit <code>abc12348f9</code>.
+                    The commit modified the sort predicate on customer order lookups. Because the <code>orders</code> table lacked a composite index
+                    on <code>(customer_id, created_at DESC)</code>, PostgreSQL fell back to sequential table scans, escalating query duration from 3ms
+                    to 1850ms and breaching API SLA thresholds.
+                  </p>
+                </section>
+
+                <hr className="chapter-divider" />
+
+                {/* 4. TIMELINE */}
+                <section className="section-chapter">
+                  <div className="section-tag">// 02 — TIMELINE</div>
+                  <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "24px" }}>
+                    Deterministic chronological sequence reconstructed from distributed traces, metrics, and deployments.
+                  </p>
+
+                  <div style={{ position: "relative", paddingLeft: "24px" }}>
+                    <div style={{ position: "absolute", left: "6px", top: "8px", bottom: "8px", width: "1px", backgroundColor: "var(--border-subtle)" }} />
+
+                    {timelineEvents.map((evt) => {
+                      const isExpanded = expandedTimelineId === evt.event_id;
+
+                      return (
+                        <div
+                          key={evt.event_id}
+                          style={{ position: "relative", marginBottom: "20px", cursor: "pointer" }}
+                          onClick={() => setExpandedTimelineId(isExpanded ? null : evt.event_id)}
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: "-21px",
+                              top: "6px",
+                              width: "7px",
+                              height: "7px",
+                              borderRadius: "50%",
+                              backgroundColor:
+                                evt.type === "deployment"
+                                  ? "var(--crimson-blue-accent)"
+                                  : evt.type === "span" || evt.type === "metric"
+                                  ? "var(--crimson-red)"
+                                  : "var(--text-muted)",
+                            }}
+                          />
+
+                          <div style={{ display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", width: "70px" }}>
+                              {evt.timestamp}
+                            </span>
+                            <span style={{ fontSize: "0.9375rem", color: "var(--text-primary)", fontWeight: 500, flex: 1 }}>
+                              {evt.summary}
+                            </span>
+                            {evt.evidence_ids && evt.evidence_ids.map((evId) => (
                               <span
-                                key={id}
+                                key={evId}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedEvidenceId(evId);
+                                }}
                                 className="ev-ref"
-                                style={{ marginRight: "6px" }}
-                                onClick={() => setSelectedEvidenceId(id)}
                               >
-                                {id}
+                                {evId}
                               </span>
                             ))}
                           </div>
 
-                          {hyp.contradicting_evidence_ids.length > 0 && (
-                            <div style={{ marginBottom: "6px" }}>
-                              <span style={{ color: "var(--crimson-red)" }}>Contradicting: </span>
-                              {hyp.contradicting_evidence_ids.map((id) => (
-                                <span
-                                  key={id}
-                                  className="ev-ref"
-                                  style={{ marginRight: "6px", color: "var(--crimson-red-text)", borderColor: "var(--crimson-red-border)" }}
-                                  onClick={() => setSelectedEvidenceId(id)}
-                                >
-                                  {id}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {hyp.missing_evidence.length > 0 && (
-                            <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}>
-                              Missing: {hyp.missing_evidence.join(", ")}
+                          {isExpanded && (
+                            <div style={{ marginTop: "8px", marginLeft: "82px", fontSize: "0.75rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)", backgroundColor: "var(--bg-surface)", padding: "8px 12px", borderRadius: "var(--radius-xs)", border: "1px solid var(--border-hairline)" }}>
+                              <div>Service: {evt.service}</div>
+                              <div>Event Type: {evt.type}</div>
+                              <div>Event ID: {evt.event_id}</div>
                             </div>
                           )}
                         </div>
-                      )}
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <hr className="chapter-divider" />
+
+                {/* 5. EVIDENCE */}
+                <section className="section-chapter">
+                  <div className="section-tag">// 03 — EVIDENCE</div>
+                  <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
+                    Observable telemetry records queried from Evidence Graph. Click any reference to inspect provenance.
+                  </p>
+
+                  <div>
+                    {[
+                      {
+                        id: "EV-DEP-0001",
+                        source: "OpenTelemetry",
+                        time: "02:02:15",
+                        observation: "Release checkout-api:v4.2.1 applied to production cluster",
+                        service: "checkout-api",
+                      },
+                      {
+                        id: "EV-GIT-0001",
+                        source: "Git",
+                        time: "02:03:40",
+                        observation: "Commit abc12348f9 modified query sort order on orders lookup",
+                        service: "checkout-api",
+                      },
+                      {
+                        id: "EV-SPAN-0001",
+                        source: "OpenTelemetry",
+                        time: "02:04:30",
+                        observation: "Database query duration: 3ms → 1850ms (Seq Scan on orders table)",
+                        service: "checkout-api · PostgreSQL",
+                      },
+                      {
+                        id: "EV-METRIC-0002",
+                        source: "Prometheus",
+                        time: "02:05:00",
+                        observation: "API latency increased: P99 spiked to 1800ms with 12.5% errors",
+                        service: "checkout-api",
+                      },
+                    ].map((ev) => {
+                      const isExpanded = expandedEvidenceId === ev.id;
+
+                      return (
+                        <div key={ev.id} style={{ padding: "14px 0", borderBottom: "1px solid var(--border-hairline)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" }}>
+                            <span className="ev-ref" onClick={() => setSelectedEvidenceId(ev.id)}>
+                              {ev.id}
+                            </span>
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                              {ev.time}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: "0.9375rem", color: "#f1f5f9", marginTop: "2px", fontWeight: 500 }}>
+                            {ev.observation}
+                          </div>
+
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+                            <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+                              {ev.service}
+                            </span>
+                            <button
+                              onClick={() => setExpandedEvidenceId(isExpanded ? null : ev.id)}
+                              style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "0.75rem", cursor: "pointer", padding: 0 }}
+                            >
+                              {isExpanded ? "Hide details ↑" : "View details →"}
+                            </button>
+                          </div>
+
+                          {isExpanded && (
+                            <div style={{ marginTop: "10px", padding: "12px", backgroundColor: "var(--bg-surface)", borderRadius: "var(--radius-xs)", border: "1px solid var(--border-subtle)", fontSize: "0.75rem", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+                              <div>Source: {ev.source}</div>
+                              <div>Telemetry Record: {ev.id}</div>
+                              <div>Status: Verified Grounded</div>
+                              <div style={{ marginTop: "6px" }}>
+                                <button
+                                  onClick={() => setSelectedEvidenceId(ev.id)}
+                                  className="btn-instrument btn-instrument-ghost"
+                                  style={{ fontSize: "0.6875rem", padding: "3px 8px" }}
+                                >
+                                  Inspect Raw JSON →
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <hr className="chapter-divider" />
+
+                {/* 6. HYPOTHESES */}
+                <section className="section-chapter">
+                  <div className="section-tag">// 04 — WHAT COULD HAVE CAUSED IT?</div>
+                  <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
+                    Competing explanations evaluated against evidence.
+                  </p>
+
+                  <div>
+                    {(agentSteps?.analyst?.hypotheses || []).map((hyp: Hypothesis, idx: number) => {
+                      const isExpanded = expandedHypothesisId === hyp.hypothesis_id;
+                      const isSupported = hyp.supporting_evidence_ids.length > 0 && hyp.contradicting_evidence_ids.length === 0;
+
+                      return (
+                        <div key={hyp.hypothesis_id} style={{ padding: "16px 0", borderBottom: "1px solid var(--border-hairline)" }}>
+                          <div
+                            style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", cursor: "pointer" }}
+                            onClick={() => setExpandedHypothesisId(isExpanded ? null : hyp.hypothesis_id)}
+                          >
+                            <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flex: 1 }}>
+                              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+                                {String(idx + 1).padStart(2, "0")}
+                              </span>
+                              <span style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#fff" }}>
+                                {hyp.hypothesis}
+                              </span>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "16px" }}>
+                              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: isSupported ? "var(--verified-emerald)" : "var(--text-muted)" }}>
+                                {isSupported ? "Strongly supported" : "Refuted by evidence"}
+                              </span>
+                              <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>
+                                {isExpanded ? "▲" : "▼"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginLeft: "28px", marginTop: "4px" }}>
+                            <span style={{ color: "var(--verified-emerald)" }}>{hyp.supporting_evidence_ids.length} supporting</span>
+                            <span> · </span>
+                            <span style={{ color: hyp.contradicting_evidence_ids.length > 0 ? "var(--crimson-red)" : "var(--text-muted)" }}>
+                              {hyp.contradicting_evidence_ids.length} contradicting
+                            </span>
+                          </div>
+
+                          {isExpanded && (
+                            <div style={{ marginTop: "12px", marginLeft: "28px", fontSize: "0.8125rem" }}>
+                              <div style={{ marginBottom: "6px" }}>
+                                <span style={{ color: "var(--text-muted)" }}>Supporting: </span>
+                                {hyp.supporting_evidence_ids.map((id) => (
+                                  <span key={id} className="ev-ref" style={{ marginRight: "6px" }} onClick={() => setSelectedEvidenceId(id)}>
+                                    {id}
+                                  </span>
+                                ))}
+                              </div>
+
+                              {hyp.contradicting_evidence_ids.length > 0 && (
+                                <div style={{ marginBottom: "6px" }}>
+                                  <span style={{ color: "var(--crimson-red)" }}>Contradicting: </span>
+                                  {hyp.contradicting_evidence_ids.map((id) => (
+                                    <span key={id} className="ev-ref" style={{ marginRight: "6px", color: "var(--crimson-red-text)", borderColor: "var(--crimson-red-border)" }} onClick={() => setSelectedEvidenceId(id)}>
+                                      {id}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {hyp.missing_evidence.length > 0 && (
+                                <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}>
+                                  Missing: {hyp.missing_evidence.join(", ")}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <hr className="chapter-divider" />
+
+                {/* 7. VERIFICATION */}
+                <section className="section-chapter">
+                  <div className="section-tag section-tag-emerald">// 05 — VERIFICATION</div>
+                  <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
+                    Adversarial verifier challenged causal claims and temporal ordering.
+                  </p>
+
+                  <div>
+                    <p style={{ fontSize: "1rem", color: "#f8fafc", lineHeight: 1.6, marginBottom: "8px" }}>
+                      The deployment hypothesis is supported by temporal ordering and correlated database latency.
+                    </p>
+
+                    <blockquote
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.875rem",
+                        color: "var(--crimson-red-text)",
+                        borderLeft: "2px solid var(--crimson-red)",
+                        paddingLeft: "12px",
+                        margin: "12px 0 16px 0",
+                      }}
+                    >
+                      Temporal proximity alone does not establish causation.
+                    </blockquote>
+
+                    <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "16px" }}>
+                      Verified by commit diff linking sort predicate directly to the unindexed sequential table scan.
+                    </p>
+
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", fontSize: "0.8125rem" }}>
+                      <span style={{ color: "var(--text-muted)" }}>Supporting evidence:</span>
+                      {["EV-DEP-0001", "EV-GIT-0001", "EV-SPAN-0001", "EV-METRIC-0002"].map((evId) => (
+                        <span key={evId} className="ev-ref" onClick={() => setSelectedEvidenceId(evId)}>
+                          {evId}
+                        </span>
+                      ))}
+                      <span style={{ color: "var(--text-muted)", marginLeft: "12px" }}>Status:</span>
+                      <span style={{ color: "var(--verified-emerald)", fontWeight: 500 }}>Supported</span>
                     </div>
-                  );
-                })}
+                  </div>
+                </section>
+
+                <hr className="chapter-divider" />
+
+                {/* 8. FINAL DIAGNOSIS */}
+                <section className="section-chapter" style={{ paddingBottom: "24px" }}>
+                  <div className="section-tag">// 06 — FINAL DIAGNOSIS</div>
+
+                  <h2
+                    style={{
+                      fontSize: "1.85rem",
+                      fontWeight: 700,
+                      color: "#ffffff",
+                      lineHeight: 1.25,
+                      letterSpacing: "-0.01em",
+                      marginTop: "12px",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    Slow database query
+                  </h2>
+
+                  <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: "780px", marginBottom: "16px" }}>
+                    A query-plan regression introduced in deployment v4.2.1 caused database latency to increase,
+                    which propagated to checkout request latency and elevated 5xx error rates.
+                  </p>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "20px" }}>
+                    <span>checkout-api</span>
+                    <span>·</span>
+                    <span>v4.2.1</span>
+                    <span>·</span>
+                    <span style={{ fontFamily: "var(--font-mono)" }}>abc12348f9</span>
+                    <span>·</span>
+                    <span style={{ color: "var(--verified-emerald)", fontWeight: 600 }}>94% confidence</span>
+                  </div>
+
+                  <div style={{ marginBottom: "20px" }}>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+                      Evidence supporting this conclusion:
+                    </div>
+                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      {(diagnosis?.cited_evidence_ids || ["EV-DEP-0001", "EV-GIT-0001", "EV-SPAN-0001", "EV-METRIC-0002"]).map((evId) => (
+                        <span key={evId} className="ev-ref" onClick={() => setSelectedEvidenceId(evId)}>
+                          {evId}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+                    Recommended fix: <span style={{ color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>Apply composite index on orders(customer_id, created_at DESC) or rollback release v4.2.1.</span>
+                  </div>
+                </section>
               </div>
-            </section>
-
-            <hr className="chapter-divider" />
-
-            {/* 5. Verification */}
-            <section className="section-chapter">
-              <div className="section-tag section-tag-emerald">// 04 — VERIFICATION</div>
-              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
-                Adversarial verifier challenged causal claims and temporal ordering.
-              </p>
-
-              <div>
-                <p style={{ fontSize: "1rem", color: "#f8fafc", lineHeight: 1.6, marginBottom: "8px" }}>
-                  The deployment hypothesis is supported by temporal ordering and correlated database latency.
-                </p>
-
-                <blockquote
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "0.875rem",
-                    color: "var(--crimson-red-text)",
-                    borderLeft: "2px solid var(--crimson-red)",
-                    paddingLeft: "12px",
-                    margin: "12px 0 16px 0",
-                  }}
-                >
-                  Temporal proximity alone does not establish causation.
-                </blockquote>
-
-                <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "16px" }}>
-                  Verified by commit diff linking sort predicate directly to the unindexed sequential table scan.
-                </p>
-
-                {/* Compact reference row */}
-                <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", fontSize: "0.8125rem" }}>
-                  <span style={{ color: "var(--text-muted)" }}>Supporting evidence:</span>
-                  {["EV-DEP-0001", "EV-GIT-0001", "EV-SPAN-0001", "EV-METRIC-0002"].map((evId) => (
-                    <span
-                      key={evId}
-                      className="ev-ref"
-                      onClick={() => setSelectedEvidenceId(evId)}
-                    >
-                      {evId}
-                    </span>
-                  ))}
-                  <span style={{ color: "var(--text-muted)", marginLeft: "12px" }}>Status:</span>
-                  <span style={{ color: "var(--verified-emerald)", fontWeight: 500 }}>Supported</span>
-                </div>
-              </div>
-            </section>
-
-            <hr className="chapter-divider" />
-
-            {/* 6. Final Diagnosis */}
-            <section className="section-chapter" style={{ paddingBottom: "24px" }}>
-              <div className="section-tag">// 05 — FINAL DIAGNOSIS</div>
-
-              <h2
-                style={{
-                  fontSize: "1.85rem",
-                  fontWeight: 700,
-                  color: "#ffffff",
-                  lineHeight: 1.25,
-                  letterSpacing: "-0.01em",
-                  marginTop: "12px",
-                  marginBottom: "12px",
-                }}
-              >
-                Slow database query
-              </h2>
-
-              <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: "780px", marginBottom: "16px" }}>
-                A query-plan regression introduced in deployment v4.2.1 caused database latency to increase,
-                which propagated to checkout request latency and elevated 5xx error rates.
-              </p>
-
-              {/* Compact metadata row */}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "20px" }}>
-                <span>checkout-api</span>
-                <span>·</span>
-                <span>v4.2.1</span>
-                <span>·</span>
-                <span style={{ fontFamily: "var(--font-mono)" }}>abc12348f9</span>
-                <span>·</span>
-                <span style={{ color: "var(--verified-emerald)", fontWeight: 600 }}>94% confidence</span>
-              </div>
-
-              {/* Evidence supporting conclusion */}
-              <div style={{ marginBottom: "20px" }}>
-                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "6px" }}>
-                  Evidence supporting this conclusion:
-                </div>
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  {(diagnosis?.cited_evidence_ids || ["EV-DEP-0001", "EV-GIT-0001", "EV-SPAN-0001", "EV-METRIC-0002"]).map((evId) => (
-                    <span
-                      key={evId}
-                      className="ev-ref"
-                      onClick={() => setSelectedEvidenceId(evId)}
-                    >
-                      {evId}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mitigation action */}
-              <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
-                Recommended fix: <span style={{ color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>Apply composite index on orders(customer_id, created_at DESC) or rollback release v4.2.1.</span>
-              </div>
-            </section>
+            )}
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 3: INCIDENTS CATALOG */}
+        {/* 3. INCIDENTS PAGE ("What incidents exist?") */}
         {/* ========================================================================= */}
         {activeNav === "incidents" && (
-          <div className="container-instrument" style={{ paddingTop: "48px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
-              <div>
-                <div className="section-tag">BENCHMARK SCENARIO CATALOG</div>
-                <h1 style={{ fontSize: "1.8rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}>
-                  Incidents ({incidents.length})
-                </h1>
-              </div>
+          <div className="container-instrument" style={{ paddingTop: "36px" }}>
+            <div className="page-header-block">
+              <div className="section-tag">// BENCHMARK INCIDENT CATALOG</div>
+              <h1 className="page-header-title">Incident Catalog ({incidents.length})</h1>
+              <p className="page-header-desc">
+                Verified scenarios across 15 failure categories. An incident is the operational event being investigated.
+              </p>
+            </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <input
-                  type="text"
-                  placeholder="Filter..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-instrument"
-                  style={{ width: "180px" }}
-                />
-                <div style={{ display: "flex", gap: "4px" }}>
-                  {["ALL", "CRITICAL", "HIGH"].map((sev) => (
-                    <button
-                      key={sev}
-                      onClick={() => setFilterSeverity(sev)}
-                      style={{
-                        padding: "3px 8px",
-                        fontSize: "0.6875rem",
-                        fontFamily: "var(--font-mono)",
-                        borderRadius: "2px",
-                        border: "1px solid",
-                        borderColor: filterSeverity === sev ? "var(--crimson-blue-accent)" : "var(--border-subtle)",
-                        backgroundColor: filterSeverity === sev ? "var(--crimson-blue-subtle)" : "transparent",
-                        color: filterSeverity === sev ? "#fff" : "var(--text-muted)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {sev}
-                    </button>
-                  ))}
-                </div>
+            {/* Controls */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+              <input
+                type="text"
+                placeholder="Filter by ID, service, or keyword..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input-instrument"
+                style={{ width: "240px" }}
+              />
+
+              <div style={{ display: "flex", gap: "4px" }}>
+                {["ALL", "CRITICAL", "HIGH", "MEDIUM"].map((sev) => (
+                  <button
+                    key={sev}
+                    onClick={() => setFilterSeverity(sev)}
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "0.6875rem",
+                      fontFamily: "var(--font-mono)",
+                      borderRadius: "2px",
+                      border: "1px solid",
+                      borderColor: filterSeverity === sev ? "var(--crimson-blue-accent)" : "var(--border-subtle)",
+                      backgroundColor: filterSeverity === sev ? "var(--crimson-blue-subtle)" : "transparent",
+                      color: filterSeverity === sev ? "#fff" : "var(--text-muted)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {sev}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Clean scanable list */}
-            <div>
+            {/* List */}
+            <div style={{ borderTop: "1px solid var(--border-subtle)" }}>
               {filteredIncidents.map((inc) => (
                 <div
                   key={inc.incident_id}
                   style={{
-                    padding: "14px 0",
+                    padding: "16px 0",
                     borderBottom: "1px solid var(--border-hairline)",
                     display: "flex",
                     alignItems: "baseline",
@@ -1356,7 +1460,7 @@ export default function AletheiaApp() {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "baseline", gap: "16px", flex: 1 }}>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-muted)", width: "65px" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", width: "65px" }}>
                       {inc.incident_id}
                     </span>
                     <div style={{ flex: 1 }}>
@@ -1364,25 +1468,24 @@ export default function AletheiaApp() {
                         {inc.name}
                       </span>
                       <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginLeft: "12px" }}>
-                        {inc.affected_service}
+                        {inc.affected_service} · {inc.category}
                       </span>
                     </div>
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                    <span style={{ fontSize: "0.75rem", color: inc.severity === "CRITICAL" ? "var(--crimson-red)" : "var(--text-muted)" }}>
+                    <span style={{ fontSize: "0.75rem", color: inc.severity === "CRITICAL" ? "var(--crimson-red)" : "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
                       {inc.severity}
                     </span>
                     <button
                       onClick={() => {
-                        setSelectedIncidentId(inc.incident_id);
-                        setActiveNav("investigate");
+                        navigateToTab("investigations", inc.incident_id, true);
                         runInvestigation(inc.incident_id, selectedSystem);
                       }}
                       className="btn-instrument btn-instrument-ghost"
-                      style={{ fontSize: "0.75rem", padding: "4px 10px" }}
+                      style={{ fontSize: "0.75rem", padding: "4px 12px" }}
                     >
-                      Investigate →
+                      Investigate Incident →
                     </button>
                   </div>
                 </div>
@@ -1392,109 +1495,165 @@ export default function AletheiaApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 4: EVIDENCE GRAPH */}
+        {/* 4. EVIDENCE PAGE ("What evidence does Aletheia have?") */}
         {/* ========================================================================= */}
-        {activeNav === "graph" && (
-          <div className="container-instrument" style={{ paddingTop: "48px" }}>
-            <div className="section-tag">// EVIDENCE GRAPH</div>
-            <h1 style={{ fontSize: "1.8rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: "8px" }}>
-              Causal Map ({currentIncident.incident_id})
-            </h1>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "32px" }}>
-              Traces causal relationship from deployment trigger to downstream latency breach.
-            </p>
+        {activeNav === "evidence" && (
+          <div className="container-instrument" style={{ paddingTop: "36px" }}>
+            <div className="page-header-block">
+              <div className="section-tag">// EVIDENCE EXPLORER & CAUSAL MAP</div>
+              <h1 className="page-header-title">Evidence Explorer</h1>
+              <p className="page-header-desc">
+                Inspect signals, relationships, telemetry records, and causal DAG provenance used during investigations.
+              </p>
+            </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "32px" }}>
-              {/* Quiet Node Sequence */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
-                {[
-                  { id: "node-deploy", name: "v4.2.1", type: "DEPLOYMENT", evId: "EV-DEP-0001" },
-                  { id: "node-commit", name: "abc12348f9", type: "COMMIT", evId: "EV-GIT-0001" },
-                  { id: "node-query", name: "Query Regression", type: "UNINDEXED SORT", evId: "EV-SPAN-0001" },
-                  { id: "node-db", name: "PostgreSQL", type: "1850MS DURATION", evId: "EV-SPAN-0001" },
-                  { id: "node-api", name: "GET /api/orders", type: "LATENCY SPIKE", evId: "EV-METRIC-0002" },
-                ].map((node, i, arr) => (
-                  <React.Fragment key={node.id}>
-                    <div
-                      onClick={() => {
-                        setSelectedGraphNode(node.id);
-                        setSelectedEvidenceId(node.evId);
-                      }}
-                      style={{
-                        width: "100%",
-                        maxWidth: "400px",
-                        padding: "12px 16px",
-                        backgroundColor: selectedGraphNode === node.id ? "var(--crimson-blue-subtle)" : "transparent",
-                        border: selectedGraphNode === node.id ? "1px solid var(--crimson-blue-accent)" : "1px solid var(--border-subtle)",
-                        borderRadius: "var(--radius-xs)",
-                        cursor: "pointer",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#fff" }}>
-                          {node.name}
-                        </div>
-                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
-                          {node.type}
-                        </div>
-                      </div>
-                      <span className="ev-ref">{node.evId}</span>
-                    </div>
-
-                    {i < arr.length - 1 && (
-                      <div style={{ width: "1px", height: "20px", backgroundColor: "var(--border-subtle)" }} />
-                    )}
-                  </React.Fragment>
-                ))}
+            {/* View Mode Switcher */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px" }}>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button
+                  onClick={() => setEvidenceViewMode("graph")}
+                  className={`btn-instrument ${evidenceViewMode === "graph" ? "btn-instrument-primary" : "btn-instrument-ghost"}`}
+                  style={{ fontSize: "0.75rem", padding: "4px 12px" }}
+                >
+                  Causal Dependency Map
+                </button>
+                <button
+                  onClick={() => setEvidenceViewMode("table")}
+                  className={`btn-instrument ${evidenceViewMode === "table" ? "btn-instrument-primary" : "btn-instrument-ghost"}`}
+                  style={{ fontSize: "0.75rem", padding: "4px 12px" }}
+                >
+                  All Telemetry Records
+                </button>
               </div>
 
-              {/* Side Detail Panel */}
-              <div style={{ borderLeft: "1px solid var(--border-subtle)", paddingLeft: "24px" }}>
-                <div className="section-tag">// PROVENANCE</div>
-                <h3 style={{ fontSize: "1rem", color: "#fff", fontWeight: 600, marginBottom: "8px" }}>
-                  {activeEvidenceObj?.title || "Node Details"}
-                </h3>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "12px" }}>
-                  Evidence: <span className="ev-ref">{activeEvidenceObj?.id}</span>
-                </div>
-                <div
-                  style={{
-                    backgroundColor: "var(--bg-surface)",
-                    padding: "10px",
-                    borderRadius: "var(--radius-xs)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "0.6875rem",
-                    color: "var(--text-secondary)",
-                    overflowX: "auto",
-                  }}
-                >
-                  <pre>{JSON.stringify(activeEvidenceObj?.payload || {}, null, 2)}</pre>
-                </div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                Active Incident: <span style={{ color: "#fff" }}>{currentIncident.incident_id}</span>
               </div>
             </div>
+
+            {evidenceViewMode === "graph" ? (
+              /* Causal Dependency Map */
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "32px" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
+                  {[
+                    { id: "node-deploy", name: "v4.2.1", type: "DEPLOYMENT MANIFEST", evId: "EV-DEP-0001" },
+                    { id: "node-commit", name: "abc12348f9", type: "COMMIT DIFF", evId: "EV-GIT-0001" },
+                    { id: "node-query", name: "Query Regression", type: "UNINDEXED TABLE SCAN", evId: "EV-SPAN-0001" },
+                    { id: "node-db", name: "PostgreSQL", type: "1850MS DURATION SPAN", evId: "EV-SPAN-0001" },
+                    { id: "node-api", name: "GET /api/orders", type: "P99 SLA BREACH METRIC", evId: "EV-METRIC-0002" },
+                  ].map((node, i, arr) => (
+                    <React.Fragment key={node.id}>
+                      <div
+                        onClick={() => {
+                          setSelectedGraphNode(node.id);
+                          setSelectedEvidenceId(node.evId);
+                        }}
+                        style={{
+                          width: "100%",
+                          maxWidth: "420px",
+                          padding: "14px 18px",
+                          backgroundColor: selectedGraphNode === node.id ? "var(--crimson-blue-subtle)" : "transparent",
+                          border: selectedGraphNode === node.id ? "1px solid var(--crimson-blue-accent)" : "1px solid var(--border-subtle)",
+                          borderRadius: "var(--radius-xs)",
+                          cursor: "pointer",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#fff" }}>
+                            {node.name}
+                          </div>
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                            {node.type}
+                          </div>
+                        </div>
+                        <span className="ev-ref">{node.evId}</span>
+                      </div>
+
+                      {i < arr.length - 1 && (
+                        <div style={{ width: "1px", height: "22px", backgroundColor: "var(--border-subtle)" }} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Right Side Detail */}
+                <div style={{ borderLeft: "1px solid var(--border-subtle)", paddingLeft: "24px" }}>
+                  <div className="section-tag">// PROVENANCE INSPECTOR</div>
+                  <h3 style={{ fontSize: "1rem", color: "#fff", fontWeight: 600, marginBottom: "8px" }}>
+                    {activeEvidenceObj?.title || "Node Details"}
+                  </h3>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "12px" }}>
+                    Record ID: <span className="ev-ref">{activeEvidenceObj?.id}</span>
+                  </div>
+                  <div style={{ backgroundColor: "var(--bg-surface)", padding: "10px", borderRadius: "var(--radius-xs)", fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-secondary)", overflowX: "auto" }}>
+                    <pre>{JSON.stringify(activeEvidenceObj?.payload || {}, null, 2)}</pre>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* All Telemetry Records Table */
+              <div>
+                <table className="table-instrument">
+                  <thead>
+                    <tr>
+                      <th>Evidence ID</th>
+                      <th>Source</th>
+                      <th>Timestamp</th>
+                      <th>Component</th>
+                      <th>Observation Summary</th>
+                      <th style={{ textAlign: "right" }}>Inspect</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.values(evidenceRecords).map((rec) => (
+                      <tr key={rec.id}>
+                        <td>
+                          <span className="ev-ref" onClick={() => setSelectedEvidenceId(rec.id)}>
+                            {rec.id}
+                          </span>
+                        </td>
+                        <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>{rec.source}</td>
+                        <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>{rec.timestamp}</td>
+                        <td style={{ color: "#fff" }}>{rec.component}</td>
+                        <td style={{ color: "var(--text-secondary)" }}>{rec.title}</td>
+                        <td style={{ textAlign: "right" }}>
+                          <button
+                            onClick={() => setSelectedEvidenceId(rec.id)}
+                            className="btn-instrument btn-instrument-ghost"
+                            style={{ fontSize: "0.6875rem", padding: "2px 8px" }}
+                          >
+                            Inspect →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 5: EVALUATIONS BENCHMARK */}
+        {/* 5. EVALUATIONS PAGE ("How well does Aletheia work?") */}
         {/* ========================================================================= */}
         {activeNav === "evaluations" && (
-          <div className="container-instrument" style={{ paddingTop: "48px" }}>
-            <div className="section-tag">// COMPARATIVE BENCHMARK</div>
-            <h1 style={{ fontSize: "1.8rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: "8px" }}>
-              Investigation Architecture Comparison
-            </h1>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "32px", maxWidth: "740px" }}>
-              Measured across 20 reproducible failure scenarios comparing Single-LLM Context Dump, 2-Agent Baseline, and 3-Agent Aletheia.
-            </p>
+          <div className="container-instrument" style={{ paddingTop: "36px" }}>
+            <div className="page-header-block">
+              <div className="section-tag">// SCIENTIFIC MEASUREMENT</div>
+              <h1 className="page-header-title">Comparative Evaluations</h1>
+              <p className="page-header-desc">
+                Systematic benchmark across 20 reproducible failure scenarios evaluating Single-LLM, 2-Agent, and 3-Agent systems.
+              </p>
+            </div>
 
-            <table className="table-instrument">
+            <table className="table-instrument" style={{ marginBottom: "32px" }}>
               <thead>
                 <tr>
-                  <th>Metric</th>
+                  <th>Benchmark Metric</th>
                   <th style={{ textAlign: "right" }}>Single-LLM</th>
                   <th style={{ textAlign: "right" }}>2-Agent</th>
                   <th style={{ textAlign: "right", color: "var(--crimson-blue-accent)" }}>3-Agent Aletheia</th>
@@ -1552,7 +1711,7 @@ export default function AletheiaApp() {
               </tbody>
             </table>
 
-            <div style={{ marginTop: "32px", fontSize: "0.875rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
+            <div style={{ fontSize: "0.875rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
               Decoupling evidence retrieval into an Evidence Graph and adding adversarial verification
               eliminates fabricated citations (95.0% down to 0.0%) and elevates diagnostic precision.
             </div>
@@ -1560,19 +1719,19 @@ export default function AletheiaApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 6: SYSTEM & LLMOPS */}
+        {/* 6. SYSTEM PAGE ("Is the Aletheia system itself healthy?") */}
         {/* ========================================================================= */}
         {activeNav === "system" && (
-          <div className="container-instrument" style={{ paddingTop: "48px" }}>
-            <div className="section-tag">// LLMOPS TELEMETRY</div>
-            <h1 style={{ fontSize: "1.8rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: "8px" }}>
-              System & Telemetry
-            </h1>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "32px" }}>
-              Model execution telemetry, token accounting, and live traces.
-            </p>
+          <div className="container-instrument" style={{ paddingTop: "36px" }}>
+            <div className="page-header-block">
+              <div className="section-tag">// OBSERVABILITY & LLMOPS</div>
+              <h1 className="page-header-title">System Health & Telemetry</h1>
+              <p className="page-header-desc">
+                Model execution health, live token accounting, latency percentiles, and invocation traces.
+              </p>
+            </div>
 
-            {/* Clean summary row */}
+            {/* Health Grid */}
             <div
               style={{
                 display: "grid",
@@ -1583,6 +1742,10 @@ export default function AletheiaApp() {
                 marginBottom: "32px",
               }}
             >
+              <div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>SERVICE HEALTH</div>
+                <div style={{ fontSize: "1rem", color: "var(--verified-emerald)", fontWeight: 600, marginTop: "2px" }}>Healthy (0.1.0)</div>
+              </div>
               <div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>MODEL</div>
                 <div style={{ fontSize: "1rem", color: "#fff", fontWeight: 600, marginTop: "2px" }}>gpt-4o-mini</div>
@@ -1598,7 +1761,7 @@ export default function AletheiaApp() {
                 </div>
               </div>
               <div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>ESTIMATED COST</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>COST PER RUN</div>
                 <div style={{ fontSize: "1rem", color: "var(--verified-emerald)", fontWeight: 600, marginTop: "2px" }}>
                   ${evaluation?.estimated_cost_usd?.toFixed(5) || "0.00014"}
                 </div>
@@ -1646,7 +1809,7 @@ export default function AletheiaApp() {
       </main>
 
       {/* ========================================================================= */}
-      {/* 7. SLIDE-OUT PROVENANCE INSPECTOR */}
+      {/* 7. SLIDE-OUT PROVENANCE INSPECTOR (UNIVERSAL ACROSS ALL VIEWS) */}
       {/* ========================================================================= */}
       {selectedEvidenceId && activeEvidenceObj && (
         <div
