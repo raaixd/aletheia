@@ -39,23 +39,31 @@ def list_baselines() -> List[BaselineInfo]:
             name="Baseline A: Single-LLM Context Dump",
             description="Feeds all observable alerts, logs, metrics, and timeline into a single LLM prompt for root cause diagnosis.",
         ),
+        BaselineInfo(
+            id="aletheia-3agent",
+            name="Aletheia: 3-Agent Multi-Agent System",
+            description="Specialized Investigator -> Analyst -> Verifier architecture with causal discrimination and temporal validation.",
+        ),
     ]
 
 
 @router.post("/run", response_model=EvaluationReport)
 def run_evaluation(request: EvalRunRequest) -> EvaluationReport:
     """Execute diagnostic evaluation against ground truth and return comprehensive scorecard."""
+    from aletheia.agents.orchestrator import AletheiaMultiAgentSystem
+
     harness = get_evaluation_harness()
 
-    if request.baseline != "single-llm":
+    supported = ["single-llm", "aletheia-3agent"]
+    if request.baseline not in supported:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported baseline '{request.baseline}'. Supported: ['single-llm']",
+            detail=f"Unsupported baseline '{request.baseline}'. Supported: {supported}",
         )
 
     if request.use_live_llm:
         client = OpenAILLMClient(model=request.model)
-        system_name = f"Baseline-A-Single-LLM ({request.model or 'openai'})"
+        label = request.model or "openai"
     else:
         try:
             mode = MockMode(request.mock_mode or "accurate")
@@ -65,9 +73,12 @@ def run_evaluation(request: EvalRunRequest) -> EvaluationReport:
                 detail=f"Invalid mock_mode '{request.mock_mode}'. Valid: {[m.value for m in MockMode]}",
             )
         client = MockLLMClient(mode=mode, model_name=f"mock-{mode.value}")
-        system_name = f"Baseline-A-Single-LLM (mock:{mode.value})"
+        label = f"mock:{mode.value}"
 
-    system = SingleLLMBaseline(name=system_name, llm_client=client)
+    if request.baseline == "single-llm":
+        system = SingleLLMBaseline(name=f"Baseline-A-Single-LLM ({label})", llm_client=client)
+    else:
+        system = AletheiaMultiAgentSystem(name=f"Aletheia-3Agent ({label})", llm_client=client)
 
     try:
         report = harness.evaluate(system=system, incident_id=request.incident_id)

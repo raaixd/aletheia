@@ -21,8 +21,8 @@ def main():
         "--baseline",
         type=str,
         default="single-llm",
-        choices=["single-llm"],
-        help="Diagnostic baseline system to run (default: single-llm)",
+        choices=["single-llm", "aletheia-3agent"],
+        help="Diagnostic baseline system to run: 'single-llm' or 'aletheia-3agent' (default: single-llm)",
     )
     parser.add_argument(
         "--mock",
@@ -58,13 +58,18 @@ def main():
     # Configure client
     if args.live:
         client = OpenAILLMClient(model=args.model)
-        system_name = f"Baseline-A-Single-LLM ({args.model or 'openai'})"
+        label = args.model or "openai"
     else:
         mode = MockMode(args.mock)
         client = MockLLMClient(mode=mode, model_name=f"mock-{mode.value}")
-        system_name = f"Baseline-A-Single-LLM (mock:{mode.value})"
+        label = f"mock:{mode.value}"
 
-    baseline_system = SingleLLMBaseline(name=system_name, llm_client=client)
+    if args.baseline == "single-llm":
+        baseline_system = SingleLLMBaseline(name=f"Baseline-A-Single-LLM ({label})", llm_client=client)
+    else:
+        from aletheia.agents.orchestrator import AletheiaMultiAgentSystem
+        baseline_system = AletheiaMultiAgentSystem(name=f"Aletheia-3Agent ({label})", llm_client=client)
+
     harness = get_evaluation_harness()
 
     try:

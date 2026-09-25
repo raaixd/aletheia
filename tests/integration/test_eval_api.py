@@ -10,6 +10,7 @@ def test_get_evaluation_baselines(aletheia_client: TestClient):
     data = resp.json()
     assert isinstance(data, list)
     assert any(b["id"] == "single-llm" for b in data)
+    assert any(b["id"] == "aletheia-3agent" for b in data)
 
 
 def test_post_eval_run_accurate_mock(aletheia_client: TestClient):
@@ -69,3 +70,20 @@ def test_post_eval_run_invalid_mock_mode_returns_400(aletheia_client: TestClient
     }
     resp = aletheia_client.post("/api/v1/eval/run", json=payload)
     assert resp.status_code == 400
+
+
+def test_post_eval_run_aletheia_3agent(aletheia_client: TestClient):
+    payload = {
+        "incident_id": "INC-001",
+        "baseline": "aletheia-3agent",
+        "mock_mode": "accurate",
+    }
+    resp = aletheia_client.post("/api/v1/eval/run", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["incident_id"] == "INC-001"
+    assert "Aletheia-3Agent" in data["system_name"]
+    assert data["overall_score"] >= 0.85
+    assert data["root_cause_score"]["passed"] is True
+    assert data["hallucination_score"]["passed"] is True
+

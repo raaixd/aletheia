@@ -6,7 +6,7 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
 
 ---
 
-## Current Status: Phase 5 — Single-LLM Baseline & Evaluation Harness Complete
+## Current Status: Phase 6 — Multi-Agent Investigation (LangGraph) Complete
 
 - **Phase 1 (Foundation)**: Simulated checkout service, PostgreSQL 16, Docker Compose, automated product seeding, synthetic traffic generator.
 - **Phase 2 (Observability)**: Correlated telemetry triad across all services (structured JSON logging, context-aware correlation IDs, Prometheus metrics, OpenTelemetry distributed tracing).
@@ -16,9 +16,13 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
   - **Ground Truth Isolation**: Diagnostic models are evaluated strictly against observable evidence, never given ground truth clues or answers.
   - **Baseline A (Single-LLM Context Dump)**: Full telemetry serialization into a structured diagnosis with strict JSON discipline.
   - **Six-Dimensional Evaluation Metrics**: Root cause accuracy, attribution accuracy, affected service/component, evidence recall, evidence precision, and hallucination penalty.
-  - **Hermetic Mocking & Live LLM Client**: Built-in mock simulation modes (`accurate`, `hallucinated`, `partial`, `invalid_json`) and live OpenAI-compatible provider.
-  - **CLI & REST API Scorecards**: Full command-line inspector and REST endpoints (`/api/v1/eval/run`, `/api/v1/eval/reports`).
-  - **Automated Verification**: 100% passing test suite (66/66 unit and integration tests, 85% coverage).
+  - **Hermetic Mocking & Live LLM Client**: Built-in mock simulation modes (`accurate`, `hallucinated`, `partial`, `invalid_json`) and live OpenAI-compatible provider with robust error/timeout handling.
+- **Phase 6 (Multi-Agent Investigation & LangGraph Orchestration)**:
+  - **Investigator Agent**: Queries the deterministic Evidence Graph, filters out irrelevant background noise, extracts key entities/timeline, and formats grounded observations.
+  - **Analyst Agent**: Formulates multiple competing hypotheses, maps supporting and contradicting evidence, identifies missing telemetry, and distinguishes correlation from causation.
+  - **Verifier Agent**: Adversarially challenges hypotheses, audits temporal order (causes must precede effects), checks causal evidence, catches contradictions, and forms final diagnosis or flags insufficient evidence.
+  - **LangGraph StateGraph Workflow**: Connects Investigator -> Analyst -> Verifier into a clean state machine.
+  - **Automated Verification**: 100% passing test suite (90/90 unit and integration tests, 88% coverage).
 
 ---
 
@@ -290,28 +294,34 @@ curl "http://localhost:8000/api/v1/investigation/paths?source=deploy:checkout-ap
 Run benchmark evaluations across mock simulation modes or live LLMs:
 
 ```bash
-# Evaluate Baseline A with accurate model simulation
-python -m aletheia.evaluation.cli --incident INC-001 --mock accurate
+# Evaluate Aletheia 3-Agent Multi-Agent system on INC-001
+python -m aletheia.evaluation.cli --baseline aletheia-3agent --incident INC-001
 
-# Evaluate with hallucinated model (demonstrates hallucination penalty & audit)
-python -m aletheia.evaluation.cli --incident INC-001 --mock hallucinated
+# Evaluate Baseline A with accurate model simulation
+python -m aletheia.evaluation.cli --baseline single-llm --incident INC-001 --mock accurate
+
+# Evaluate Baseline A with hallucinated model (demonstrates hallucination penalty & audit)
+python -m aletheia.evaluation.cli --baseline single-llm --incident INC-001 --mock hallucinated
 
 # Evaluate with partial model (demonstrates partial recall and attribution loss)
-python -m aletheia.evaluation.cli --incident INC-001 --mock partial
+python -m aletheia.evaluation.cli --baseline single-llm --incident INC-001 --mock partial
 
 # Export evaluation scorecard as JSON
-python -m aletheia.evaluation.cli --incident INC-001 --mock accurate --json
+python -m aletheia.evaluation.cli --baseline aletheia-3agent --incident INC-001 --json
 
 # Run live evaluation with OpenAI or compatible endpoint (requires OPENAI_API_KEY)
-python -m aletheia.evaluation.cli --incident INC-001 --live --model gpt-4o-mini
+python -m aletheia.evaluation.cli --baseline aletheia-3agent --incident INC-001 --live --model gpt-4o-mini
 ```
 
 Or trigger evaluation via Aletheia REST API:
 ```bash
-# Run evaluation via API
+# Run 3-Agent evaluation via API
 curl -X POST http://localhost:8000/api/v1/eval/run \
   -H "Content-Type: application/json" \
-  -d '{"incident_id": "INC-001", "baseline": "single-llm", "mock_mode": "accurate"}'
+  -d '{"incident_id": "INC-001", "baseline": "aletheia-3agent", "mock_mode": "accurate"}'
+
+# List available diagnostic baselines
+curl http://localhost:8000/api/v1/eval/baselines
 
 # List past evaluation reports
 curl http://localhost:8000/api/v1/eval/reports
@@ -325,11 +335,10 @@ curl http://localhost:8000/api/v1/eval/reports
 - [x] **Phase 2 — Observability**: Structured JSON logging, OpenTelemetry distributed traces, Prometheus metrics, and correlation IDs.
 - [x] **Phase 3 — Failure Injection**: Controlled failure scenarios (e.g., `INC-001` Database Query Regression) with ground truth definitions.
 - [x] **Phase 4 — Evidence Model & Graph**: Time-aware evidence schema, provenance, entity models, deterministic timeline, and evidence graph query engine.
-- [x] **Phase 5 — Single-LLM Baseline & Evaluation Harness**: Ground truth isolation, single-LLM context dump baseline, 6-dimensional scoring (root cause, attribution, service, recall, precision, hallucinations), hermetic mock clients, and scorecard CLI/API.
-- [ ] **Phase 6 — Agent 1: Investigator**: Evidence collection, entity extraction, and timeline construction.
-- [ ] **Phase 7 — Agent 2: Analyst**: Multi-hypothesis generation with supporting and contradicting evidence.
-- [ ] **Phase 8 — Agent 3: Verifier**: Adversarial hypothesis challenge, temporal validation, and confidence scoring.
-- [ ] **Phase 9 — Multi-Architecture Evaluation**: Quantitative benchmarking comparing Baseline A vs Baseline B (Investigator+Analyst) vs System C (Investigator+Analyst+Verifier).
-- [ ] **Phase 10 — Hard Cases & Adversarial Robustness**: Prompt injection, noisy logs, conflicting signals.
-- [ ] **Phase 11 — Frontend Dashboard**: Visual timeline, evidence graph, and investigation trace.
-- [ ] **Phase 12 — Cloud Deployment**: AWS ECS/Fargate, RDS PostgreSQL, OpenTelemetry.
+- [x] **Phase 5 — Single-LLM Baseline & Evaluation Harness**: Ground truth isolation, single-LLM context dump baseline, 6-dimensional scoring, hermetic mock clients, and scorecard CLI/API.
+- [x] **Phase 6 — Multi-Agent Investigation**: Investigator, Analyst, and Verifier agents with LangGraph orchestration and comprehensive evaluation.
+- [ ] **Phase 7 — Incident Benchmark & Comparative Evaluation**: 20–50 reproducible failure scenarios across 15+ failure categories; 3-way comparative evaluation (Single-LLM vs 2-Agent vs 3-Agent).
+- [ ] **Phase 8 — Reliability & LLMOps**: Token/cost/latency telemetry, retries, rate limits, structured run persistence.
+- [ ] **Phase 9 — Frontend & Deployment**: Modern Next.js + TypeScript dashboard with interactive timeline, evidence graph, and deployment.
+- [ ] **Phase 10 — Final Portfolio Release**: Architecture writeups, benchmark results, demonstration guide, and ADRs.
+
