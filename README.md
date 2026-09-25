@@ -1,6 +1,6 @@
-# Aletheia (ἀλήθεια)
+# Aletheia.
 
-> *"The goal isn't to build an AI that guesses what went wrong. It's to build an investigation system that gathers evidence, constructs explanations, challenges them, and can be measured when it gets the diagnosis wrong."*
+> *The goal isn't to build an AI that guesses what went wrong. It's to build an investigation system that gathers evidence, constructs explanations, challenges them, and can be measured when it gets the diagnosis wrong.*
 
 Aletheia is an AI-powered incident investigation system for software systems. When a production system experiences an incident, Aletheia gathers evidence from multiple sources, aligns it in time, constructs an evidence graph, generates competing hypotheses, challenges them through an adversarial verifier, and outputs an evidence-backed diagnosis that can be measured against ground truth.
 
