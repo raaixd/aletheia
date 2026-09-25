@@ -1,29 +1,36 @@
 :root {
-  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
-  /* Obsidian & Charcoal Surfaces */
+  /* Obsidian & Charcoal Base Surfaces */
   --bg-obsidian: #08090c;
-  --bg-surface: #0d1017;
-  --bg-surface-elevated: #121620;
-  --bg-surface-hover: #161b26;
+  --bg-surface: #0e1117;
+  --bg-surface-elevated: #131720;
+  --bg-surface-hover: #171c26;
 
-  /* Typography Scale */
-  --text-primary: #f4f4f6;     /* Main titles & primary findings */
-  --text-secondary: #889096;   /* Body paragraphs & secondary text */
-  --text-muted: #71717a;       /* Metadata labels & timestamps */
-  --text-faint: #52525b;       /* Minor IDs & placeholders */
+  /* Typography Colors */
+  --text-primary: #ededed;     /* Crisp soft white for headings and primary titles */
+  --text-secondary: #9aa0a6;   /* Muted gray for descriptions and body */
+  --text-muted: #6e7681;       /* Subtle metadata labels, timestamps */
+  --text-faint: #484f58;       /* Subtle borders and minor tokens */
 
-  /* Hairlines & Dividers */
-  --border-hairline: rgba(255, 255, 255, 0.07);
+  /* Fine Hairlines & Dividers */
+  --border-hairline: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.12);
   --border-focus: rgba(59, 130, 246, 0.4);
 
   /* Semantic Accents (Strict Discipline) */
-  --accent-blue: #3b82f6;      /* Active / Focus / Primary Action */
+  --accent-blue: #3b82f6;      /* Active / Focus / Primary Action Only */
   --signal-verified: #10b981;  /* Verified / Supported / Healthy */
   --signal-warning: #f59e0b;   /* Warning / Uncertain / Attention */
   --signal-failure: #f43f5e;   /* Failure / Critical / Contradiction */
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
 
   /* Radii */
   --radius-xs: 2px;
@@ -41,49 +48,59 @@
 html, body {
   background-color: var(--bg-obsidian);
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   min-height: 100vh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Typography Utilities */
+/* Typography Monospace Helper */
 .font-mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* Clean Hairline Section Separators */
+/* Application Shell Shared Width */
+.app-container {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+  width: 100%;
+}
+
+/* Hairline Section Separators */
 .hairline-separator {
   border: none;
   border-top: 1px solid var(--border-hairline);
   margin: 36px 0;
 }
 
-/* Subtle Technical Section Header */
+/* Section Tag / Eyebrow */
 .section-tag {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), monospace;
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent-blue);
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 /* Clickable Evidence Reference Badges */
 .ev-ref {
   display: inline-flex;
   align-items: center;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), monospace;
   font-size: 0.6875rem;
   font-weight: 500;
   color: #93c5fd;
   background-color: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(37, 99, 235, 0.24);
+  border: 1px solid rgba(37, 99, 235, 0.22);
   padding: 1px 6px;
   border-radius: var(--radius-xs);
   cursor: pointer;
@@ -104,7 +121,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), monospace;
   font-size: 0.75rem;
   color: var(--text-muted);
 }
@@ -113,7 +130,7 @@ html, body {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), monospace;
   font-size: 0.75rem;
   cursor: pointer;
   padding: 0;
@@ -143,7 +160,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), monospace;
   font-size: 0.75rem;
   color: var(--text-muted);
   white-space: nowrap;
@@ -246,7 +263,7 @@ html, body {
   z-index: 2;
 }
 
-/* Minimalist Technical List System (No excessive cards) */
+/* Minimalist Operational List / Table (No heavy outer cards) */
 .technical-list-container {
   border-top: 1px solid var(--border-hairline);
   border-bottom: 1px solid var(--border-hairline);
@@ -257,9 +274,9 @@ html, body {
 .technical-list-header {
   display: grid;
   align-items: center;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border-hairline);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), monospace;
   font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -270,7 +287,7 @@ html, body {
 .technical-list-row {
   display: grid;
   align-items: center;
-  padding: 10px 12px;
+  padding: 14px 12px;
   border-bottom: 1px solid var(--border-hairline);
   transition: background-color 0.1s ease;
   font-size: 0.8125rem;
@@ -282,6 +299,34 @@ html, body {
 
 .technical-list-row:hover {
   background-color: rgba(255, 255, 255, 0.025);
+}
+
+/* Responsive adjustments for operational tables */
+@media (max-width: 860px) {
+  .technical-list-header {
+    display: none !important;
+  }
+  .technical-list-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding: 14px 10px !important;
+  }
+}
+
+/* Subtle Fast Page Transition */
+@keyframes subtle-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: subtle-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Hardware-Accelerated BorderBeam Animation */

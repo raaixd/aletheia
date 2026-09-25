@@ -71,28 +71,33 @@ def get_causal_paths(
 
 @router.get("/incidents")
 def list_incidents() -> List[Dict[str, Any]]:
-    """List all available incident scenarios with metadata."""
+    """List all available incident scenarios with canonical metadata."""
     import json
     from pathlib import Path
     repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
     scenarios_dir = repo_root / "incidents" / "scenarios"
-    incidents = []
+    incidents_dict: Dict[str, Dict[str, Any]] = {}
     if scenarios_dir.exists():
         for p in sorted(scenarios_dir.glob("*.json")):
             try:
                 with open(p, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                incidents.append({
-                    "incident_id": data.get("incident_id", p.stem.replace("_scenario", "").upper()),
-                    "name": data.get("name", ""),
-                    "category": data.get("category", "system"),
-                    "severity": data.get("severity", "CRITICAL"),
-                    "affected_service": data.get("affected_service", "checkout-api"),
-                    "description": data.get("description", ""),
-                })
+                raw_id = data.get("scenario_id") or data.get("incident_id") or p.stem.replace("_scenario", "").upper()
+                import re
+                num_match = re.search(r"(\d+)", str(raw_id))
+                canonical_id = f"INC-{int(num_match.group(1)):03d}" if num_match else str(raw_id).replace("_", "-")
+                if canonical_id not in incidents_dict:
+                    incidents_dict[canonical_id] = {
+                        "incident_id": canonical_id,
+                        "name": data.get("name", ""),
+                        "category": data.get("category", "system"),
+                        "severity": data.get("severity", "CRITICAL"),
+                        "affected_service": data.get("target_service") or data.get("affected_service", "checkout-api"),
+                        "description": data.get("description", ""),
+                    }
             except Exception:
                 continue
-    return incidents
+    return list(incidents_dict.values())
 
 
 @router.post("/diagnose/{incident_id}")

@@ -570,10 +570,8 @@ export default function Home() {
         }}
       >
         <div
+          className="app-container"
           style={{
-            maxWidth: "1320px",
-            margin: "0 auto",
-            padding: "0 24px",
             height: "52px",
             display: "flex",
             alignItems: "center",
@@ -735,31 +733,31 @@ export default function Home() {
       </header>
 
       {/* MAIN VIEWPORT CONTAINER */}
-      <main style={{ maxWidth: "1320px", margin: "0 auto", padding: "36px 24px 80px 24px" }}>
+      <main className="app-container" style={{ paddingTop: "28px", paddingBottom: "80px" }}>
         {/* ========================================================================= */}
         {/* 1. OVERVIEW PAGE (SIMPLIFIED, EDITORIAL, FOCUSED)                         */}
         {/* ========================================================================= */}
         {activeNav === "overview" && (
-          <div>
+          <div className="page-enter">
             {/* HERO WITH SUBTLE DEPTH */}
             <div
               style={{
                 position: "relative",
-                padding: "48px 0 40px 0",
+                padding: "24px 0 28px 0",
                 marginBottom: "32px",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                borderBottom: "1px solid var(--border-hairline)",
               }}
             >
-              <div style={{ maxWidth: "720px" }}>
-                <div className="section-tag">
+              <div style={{ maxWidth: "700px" }}>
+                <div className="section-tag" style={{ color: "var(--text-muted)", marginBottom: "8px" }}>
                   <ShieldCheck size={13} />
-                  INCIDENT INVESTIGATION INSTRUMENT
+                  INCIDENT INVESTIGATION
                 </div>
                 <h1
                   style={{
-                    fontSize: "2.5rem",
+                    fontSize: "2.25rem",
                     fontWeight: 700,
-                    letterSpacing: "-0.035em",
+                    letterSpacing: "-0.03em",
                     lineHeight: 1.15,
                     marginBottom: "12px",
                     color: "#ffffff",
@@ -772,14 +770,14 @@ export default function Home() {
                     fontSize: "0.9375rem",
                     color: "var(--text-secondary)",
                     lineHeight: 1.6,
-                    marginBottom: "28px",
+                    marginBottom: "24px",
                   }}
                 >
                   Evidence-driven incident investigation for production systems. Reconstructs what happened, tests competing explanations, and executes adversarial verification audits against active telemetry.
                 </p>
 
                 {/* Compact Investigation Command Input */}
-                <div style={{ marginBottom: "20px" }}>
+                <div style={{ marginBottom: "8px" }}>
                   <CommandInput
                     incidents={incidents}
                     selectedIncidentId={selectedIncidentId}
@@ -804,7 +802,7 @@ export default function Home() {
                 }}
               >
                 <div>
-                  <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff" }}>
+                  <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "4px" }}>
                     Recent Investigations
                   </h2>
                   <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
@@ -813,7 +811,7 @@ export default function Home() {
                 </div>
 
                 <Button variant="ghost" size="sm" onClick={() => navigateToTab("incidents")}>
-                  Browse 21 Scenarios <ChevronRight size={13} />
+                  Browse 20 Scenarios <ChevronRight size={13} />
                 </Button>
               </div>
 
@@ -821,105 +819,103 @@ export default function Home() {
               <div className="technical-list-container">
                 <div
                   className="technical-list-header"
-                  style={{ gridTemplateColumns: "100px 90px 1fr 140px 100px 110px" }}
+                  style={{ gridTemplateColumns: "90px 100px minmax(0, 1fr) 140px 100px", gap: "16px" }}
                 >
                   <span>STATUS</span>
-                  <span>ID</span>
-                  <span>ANOMALY & FAILURE SUMMARY</span>
+                  <span>INCIDENT</span>
+                  <span>ANOMALY / FAILURE SUMMARY</span>
                   <span>SERVICE</span>
-                  <span>SEVERITY</span>
                   <span style={{ textAlign: "right" }}>ACTION</span>
                 </div>
 
-                {incidents.slice(0, 5).map((inc) => (
+                {incidents.slice(0, 4).map((inc) => (
                   <div
                     key={inc.incident_id}
                     className="technical-list-row"
-                    style={{ gridTemplateColumns: "100px 90px 1fr 140px 100px 110px" }}
+                    onClick={() => {
+                      setSelectedIncidentId(inc.incident_id);
+                      navigateToTab("investigations", inc.incident_id);
+                      runInvestigation(inc.incident_id);
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      gridTemplateColumns: "90px 100px minmax(0, 1fr) 140px 100px",
+                      gap: "16px",
+                    }}
                   >
                     <div>
                       <span
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: "5px",
-                          fontSize: "0.6875rem",
+                          gap: "6px",
+                          fontSize: "0.75rem",
                           fontFamily: "var(--font-mono)",
-                          padding: "1px 6px",
-                          borderRadius: "3px",
-                          backgroundColor:
-                            inc.incident_id === "INC-001"
-                              ? "rgba(16, 185, 129, 0.12)"
-                              : "rgba(245, 158, 11, 0.12)",
-                          color: inc.incident_id === "INC-001" ? "#6ee7b7" : "#fde68a",
+                          color: inc.incident_id === "INC-001" ? "#34d399" : "#eab308",
                         }}
                       >
                         <span
                           style={{
-                            width: "5px",
-                            height: "5px",
+                            width: "6px",
+                            height: "6px",
                             borderRadius: "50%",
-                            backgroundColor: inc.incident_id === "INC-001" ? "#10b981" : "#f59e0b",
+                            backgroundColor: inc.incident_id === "INC-001" ? "#10b981" : "#eab308",
                           }}
                         />
-                        {inc.incident_id === "INC-001" ? "VERIFIED" : "READY"}
+                        READY
                       </span>
                     </div>
 
-                    <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#ffffff" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontWeight: 500, color: "#e2e8f0" }}>
                       {inc.incident_id}
                     </div>
 
-                    <div>
-                      <span style={{ fontWeight: 500, color: "#ffffff", marginRight: "8px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
+                      <span style={{ fontWeight: 600, fontSize: "0.875rem", color: "#f8fafc", lineHeight: 1.35 }}>
                         {inc.name}
                       </span>
-                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                      <span style={{ fontSize: "0.8125rem", color: "#94a3b8", lineHeight: 1.45 }}>
                         {inc.description}
                       </span>
                     </div>
 
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#94a3b8" }}>
                       {inc.affected_service}
-                    </div>
-
-                    <div>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.6875rem",
-                          fontWeight: 600,
-                          color:
-                            inc.severity === "CRITICAL"
-                              ? "#fda4af"
-                              : inc.severity === "HIGH"
-                              ? "#fde68a"
-                              : "#94a3b8",
-                        }}
-                      >
-                        {inc.severity}
-                      </span>
                     </div>
 
                     <div style={{ textAlign: "right" }}>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedIncidentId(inc.incident_id);
                           navigateToTab("investigations", inc.incident_id);
                           runInvestigation(inc.incident_id);
                         }}
                         style={{
-                          background: "none",
+                          background: "transparent",
                           border: "none",
-                          color: "#3b82f6",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.75rem",
+                          color: "#94a3b8",
+                          fontFamily: "var(--font-sans)",
+                          fontSize: "0.8125rem",
                           cursor: "pointer",
-                          padding: "2px 4px",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "#ffffff";
+                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "#94a3b8";
+                          e.currentTarget.style.backgroundColor = "transparent";
                         }}
                       >
-                        Inspect →
+                        Investigate <ChevronRight size={13} />
                       </button>
                     </div>
                   </div>
@@ -929,7 +925,7 @@ export default function Home() {
 
             {/* THE 6-STAGE INVESTIGATION PROTOCOL */}
             <div>
-              <div className="section-tag">
+              <div className="section-tag" style={{ color: "var(--text-muted)", marginBottom: "8px" }}>
                 <Layers size={13} /> INVESTIGATION WORKFLOW
               </div>
               <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "16px" }}>
@@ -965,7 +961,7 @@ export default function Home() {
                         fontFamily: "var(--font-mono)",
                         fontSize: "0.6875rem",
                         fontWeight: 600,
-                        color: "#3b82f6",
+                        color: "#94a3b8",
                         marginBottom: "6px",
                       }}
                     >
