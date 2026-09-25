@@ -171,12 +171,12 @@ export function CommandPalette({
         style={{
           width: "100%",
           maxWidth: "640px",
-          backgroundColor: "#0d1017",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          backgroundColor: "#151513",
+          border: "1px solid #2e2c26",
           borderRadius: "8px",
-          boxShadow: "0 24px 60px -12px rgba(0, 0, 0, 0.75), 0 0 1px 1px rgba(255, 255, 255, 0.08)",
+          boxShadow: "0 24px 60px -12px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(231, 227, 220, 0.05)",
           overflow: "hidden",
-          color: "#f4f4f6",
+          color: "#e7e3dc",
           display: "flex",
           flexDirection: "column",
           maxHeight: "70vh",
@@ -190,11 +190,11 @@ export function CommandPalette({
             alignItems: "center",
             gap: "12px",
             padding: "14px 16px",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-            backgroundColor: "rgba(255, 255, 255, 0.015)",
+            borderBottom: "1px solid #292823",
+            backgroundColor: "rgba(231, 227, 220, 0.015)",
           }}
         >
-          <Search size={16} style={{ color: "#71717a", flexShrink: 0 }} />
+          <Search size={16} style={{ color: "#858178", flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -210,7 +210,7 @@ export function CommandPalette({
               background: "none",
               border: "none",
               outline: "none",
-              color: "#ffffff",
+              color: "#e7e3dc",
               fontSize: "0.9375rem",
               fontFamily: "var(--font-sans)",
             }}
@@ -219,11 +219,11 @@ export function CommandPalette({
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: "0.6875rem",
-              color: "#71717a",
-              backgroundColor: "rgba(255, 255, 255, 0.06)",
+              color: "#858178",
+              backgroundColor: "rgba(231, 227, 220, 0.04)",
               padding: "2px 6px",
               borderRadius: "3px",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              border: "1px solid #292823",
             }}
           >
             ESC
@@ -246,7 +246,7 @@ export function CommandPalette({
               style={{
                 padding: "32px 16px",
                 textAlign: "center",
-                color: "#71717a",
+                color: "#858178",
                 fontSize: "0.8125rem",
               }}
             >
@@ -262,7 +262,7 @@ export function CommandPalette({
                       fontFamily: "var(--font-mono)",
                       fontSize: "0.625rem",
                       fontWeight: 600,
-                      color: "#71717a",
+                      color: "#858178",
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
                       padding: "6px 8px 4px 8px",
@@ -285,21 +285,21 @@ export function CommandPalette({
                           justifyContent: "space-between",
                           padding: "8px 10px",
                           borderRadius: "4px",
-                          backgroundColor: isSelected ? "rgba(255, 255, 255, 0.06)" : "transparent",
+                          backgroundColor: isSelected ? "rgba(231, 227, 220, 0.05)" : "transparent",
                           cursor: "pointer",
                           transition: "background-color 0.1s ease",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <IconComponent size={14} style={{ color: isSelected ? "#3b82f6" : "#889096" }} />
+                          <IconComponent size={14} style={{ color: isSelected ? "#8fa58a" : "#858178" }} />
                           <div>
-                            <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#ffffff" }}>
+                            <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#e7e3dc" }}>
                               {act.label}
                             </div>
-                            <div style={{ fontSize: "0.6875rem", color: "#71717a" }}>{act.desc}</div>
+                            <div style={{ fontSize: "0.6875rem", color: "#858178" }}>{act.desc}</div>
                           </div>
                         </div>
-                        <ArrowRight size={12} style={{ color: isSelected ? "#ffffff" : "#444" }} />
+                        <ArrowRight size={12} style={{ color: isSelected ? "#e7e3dc" : "#57544d" }} />
                       </div>
                     );
                   })}
@@ -314,7 +314,7 @@ export function CommandPalette({
                       fontFamily: "var(--font-mono)",
                       fontSize: "0.625rem",
                       fontWeight: 600,
-                      color: "#71717a",
+                      color: "#858178",
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
                       padding: "6px 8px 4px 8px",
@@ -337,25 +337,25 @@ export function CommandPalette({
                           justifyContent: "space-between",
                           padding: "8px 10px",
                           borderRadius: "4px",
-                          backgroundColor: isSelected ? "rgba(255, 255, 255, 0.06)" : "transparent",
+                          backgroundColor: isSelected ? "rgba(231, 227, 220, 0.05)" : "transparent",
                           cursor: "pointer",
                           transition: "background-color 0.1s ease",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <IconComponent size={14} style={{ color: isSelected ? "#3b82f6" : "#889096" }} />
+                          <IconComponent size={14} style={{ color: isSelected ? "#8fa58a" : "#858178" }} />
                           <div>
-                            <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#ffffff" }}>
+                            <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#e7e3dc" }}>
                               {nav.label}
                             </div>
-                            <div style={{ fontSize: "0.6875rem", color: "#71717a" }}>{nav.desc}</div>
+                            <div style={{ fontSize: "0.6875rem", color: "#858178" }}>{nav.desc}</div>
                           </div>
                         </div>
                         <span
                           style={{
                             fontFamily: "var(--font-mono)",
                             fontSize: "0.625rem",
-                            color: "#71717a",
+                            color: "#858178",
                           }}
                         >
                           Jump
@@ -374,7 +374,7 @@ export function CommandPalette({
                       fontFamily: "var(--font-mono)",
                       fontSize: "0.625rem",
                       fontWeight: 600,
-                      color: "#71717a",
+                      color: "#858178",
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
                       padding: "6px 8px 4px 8px",
@@ -398,7 +398,7 @@ export function CommandPalette({
                           justifyContent: "space-between",
                           padding: "8px 10px",
                           borderRadius: "4px",
-                          backgroundColor: isSelected ? "rgba(255, 255, 255, 0.06)" : "transparent",
+                          backgroundColor: isSelected ? "rgba(231, 227, 220, 0.05)" : "transparent",
                           cursor: "pointer",
                           transition: "background-color 0.1s ease",
                         }}
@@ -408,8 +408,8 @@ export function CommandPalette({
                             style={{
                               fontFamily: "var(--font-mono)",
                               fontSize: "0.75rem",
-                              fontWeight: 600,
-                              color: "#93c5fd",
+                              fontWeight: 500,
+                              color: "#e7e3dc",
                               flexShrink: 0,
                             }}
                           >
@@ -419,7 +419,7 @@ export function CommandPalette({
                             <div
                               style={{
                                 fontSize: "0.8125rem",
-                                color: "#ffffff",
+                                color: "#e7e3dc",
                                 whiteSpace: "nowrap",
                                 textOverflow: "ellipsis",
                                 overflow: "hidden",
@@ -431,7 +431,7 @@ export function CommandPalette({
                               style={{
                                 fontFamily: "var(--font-mono)",
                                 fontSize: "0.6875rem",
-                                color: "#71717a",
+                                color: "#858178",
                               }}
                             >
                               {inc.affected_service}
@@ -446,9 +446,9 @@ export function CommandPalette({
                             borderRadius: "3px",
                             backgroundColor:
                               inc.severity === "CRITICAL"
-                                ? "rgba(244, 63, 94, 0.12)"
-                                : "rgba(245, 158, 11, 0.12)",
-                            color: inc.severity === "CRITICAL" ? "#fda4af" : "#fde68a",
+                                ? "rgba(196, 104, 93, 0.12)"
+                                : "rgba(194, 155, 56, 0.12)",
+                            color: inc.severity === "CRITICAL" ? "#c4685d" : "#c29b38",
                             flexShrink: 0,
                           }}
                         >
@@ -470,11 +470,11 @@ export function CommandPalette({
             alignItems: "center",
             justifyContent: "space-between",
             padding: "8px 16px",
-            borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+            borderTop: "1px solid #292823",
             fontSize: "0.6875rem",
-            color: "#71717a",
+            color: "#858178",
             fontFamily: "var(--font-mono)",
-            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            backgroundColor: "#111110",
           }}
         >
           <div style={{ display: "flex", gap: "12px" }}>

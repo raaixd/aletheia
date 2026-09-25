@@ -57,11 +57,11 @@ export function CommandInput({
       <div
         style={{
           position: "relative",
-          backgroundColor: isFocused ? "#0d1017" : "rgba(13, 16, 23, 0.75)",
-          border: isFocused ? "1px solid rgba(255, 255, 255, 0.18)" : "1px solid rgba(255, 255, 255, 0.08)",
+          backgroundColor: isFocused ? "#151513" : "rgba(20, 20, 18, 0.85)",
+          border: isFocused ? "1px solid #3d3a33" : "1px solid #292823",
           borderRadius: "8px",
           boxShadow: isFocused
-            ? "0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(59, 130, 246, 0.2)"
+            ? "0 12px 32px -8px rgba(0, 0, 0, 0.7), 0 0 1px 1px rgba(143, 165, 138, 0.15)"
             : "0 4px 20px -4px rgba(0, 0, 0, 0.4)",
           transition: "all 0.2s ease",
           padding: "10px 14px",
@@ -74,13 +74,13 @@ export function CommandInput({
           isActive={isFocused || isLoading}
           duration={isLoading ? 3 : 8}
           borderWidth={1.5}
-          colorFrom="#3b82f6"
-          colorTo="#10b981"
+          colorFrom="#8fa58a"
+          colorTo="#b7b2a9"
         />
 
         {/* Input Row */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Search size={15} style={{ color: isFocused ? "#3b82f6" : "#71717a", flexShrink: 0, transition: "color 0.15s ease" }} />
+          <Search size={15} style={{ color: isFocused ? "#8fa58a" : "#858178", flexShrink: 0, transition: "color 0.15s ease" }} />
           <input
             ref={inputRef}
             type="text"
@@ -106,7 +106,7 @@ export function CommandInput({
               background: "none",
               border: "none",
               outline: "none",
-              color: "#ffffff",
+              color: "#e7e3dc",
               fontSize: "0.875rem",
               fontFamily: "var(--font-sans)",
             }}
@@ -120,11 +120,11 @@ export function CommandInput({
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              padding: "5px 10px",
-              backgroundColor: isFocused ? "#2563eb" : "rgba(255, 255, 255, 0.08)",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
+              padding: "5px 11px",
+              backgroundColor: isFocused ? "#242722" : "rgba(231, 227, 220, 0.06)",
+              border: isFocused ? "1px solid rgba(143, 165, 138, 0.35)" : "1px solid #2e2c26",
               borderRadius: "4px",
-              color: "#ffffff",
+              color: isFocused ? "#e7e3dc" : "#b7b2a9",
               fontSize: "0.75rem",
               fontWeight: 500,
               fontFamily: "var(--font-mono)",
@@ -132,10 +132,16 @@ export function CommandInput({
               transition: "all 0.15s ease",
             }}
             onMouseEnter={(e) => {
-              if (!isLoading) e.currentTarget.style.backgroundColor = "#3b82f6";
+              if (!isLoading) {
+                e.currentTarget.style.backgroundColor = "#2a2e28";
+                e.currentTarget.style.color = "#e7e3dc";
+              }
             }}
             onMouseLeave={(e) => {
-              if (!isLoading) e.currentTarget.style.backgroundColor = isFocused ? "#2563eb" : "rgba(255, 255, 255, 0.08)";
+              if (!isLoading) {
+                e.currentTarget.style.backgroundColor = isFocused ? "#242722" : "rgba(231, 227, 220, 0.06)";
+                e.currentTarget.style.color = isFocused ? "#e7e3dc" : "#b7b2a9";
+              }
             }}
           >
             <span>{isLoading ? "Analyzing..." : "Investigate"}</span>
@@ -145,7 +151,7 @@ export function CommandInput({
 
         {/* Quick Suggestion Chips */}
         <div style={{ display: "flex", alignItems: "center", gap: "6px", overflowX: "auto", paddingBottom: "2px" }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a", textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#858178", textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>
             Scenarios:
           </span>
           {incidents.slice(0, 4).map((inc) => (
@@ -155,24 +161,24 @@ export function CommandInput({
               onClick={() => handleSubmit(inc.incident_id)}
               style={{
                 background: "none",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                border: inc.incident_id === selectedIncidentId ? "1px solid rgba(143, 165, 138, 0.35)" : "1px solid #292823",
                 borderRadius: "3px",
                 padding: "2px 7px",
                 fontFamily: "var(--font-mono)",
                 fontSize: "0.6875rem",
-                color: inc.incident_id === selectedIncidentId ? "#93c5fd" : "#889096",
-                backgroundColor: inc.incident_id === selectedIncidentId ? "rgba(37, 99, 235, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                color: inc.incident_id === selectedIncidentId ? "#e7e3dc" : "#858178",
+                backgroundColor: inc.incident_id === selectedIncidentId ? "rgba(143, 165, 138, 0.12)" : "rgba(231, 227, 220, 0.02)",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
                 transition: "all 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#ffffff";
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                e.currentTarget.style.color = "#e7e3dc";
+                e.currentTarget.style.borderColor = "rgba(231, 227, 220, 0.18)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = inc.incident_id === selectedIncidentId ? "#93c5fd" : "#889096";
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                e.currentTarget.style.color = inc.incident_id === selectedIncidentId ? "#e7e3dc" : "#858178";
+                e.currentTarget.style.borderColor = inc.incident_id === selectedIncidentId ? "rgba(143, 165, 138, 0.35)" : "#292823";
               }}
             >
               {inc.incident_id}
@@ -190,17 +196,17 @@ export function CommandInput({
             left: 0,
             right: 0,
             zIndex: 60,
-            backgroundColor: "#0d1017",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
+            backgroundColor: "#161614",
+            border: "1px solid #2e2c26",
             borderRadius: "6px",
-            boxShadow: "0 16px 36px -6px rgba(0, 0, 0, 0.7)",
+            boxShadow: "0 16px 36px -6px rgba(0, 0, 0, 0.75)",
             maxHeight: "260px",
             overflowY: "auto",
             padding: "4px",
           }}
         >
           {filtered.length === 0 ? (
-            <div style={{ padding: "12px", textAlign: "center", color: "#71717a", fontSize: "0.75rem" }}>
+            <div style={{ padding: "12px", textAlign: "center", color: "#858178", fontSize: "0.75rem" }}>
               No incidents match &ldquo;{query}&rdquo;
             </div>
           ) : (
@@ -217,16 +223,16 @@ export function CommandInput({
                   cursor: "pointer",
                   transition: "background-color 0.1s ease",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.06)")}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(231, 227, 220, 0.04)")}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fontWeight: 600, color: "#93c5fd" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fontWeight: 500, color: "#e7e3dc" }}>
                     {inc.incident_id}
                   </span>
-                  <span style={{ fontSize: "0.8125rem", color: "#f4f4f6" }}>{inc.name}</span>
+                  <span style={{ fontSize: "0.8125rem", color: "#b7b2a9" }}>{inc.name}</span>
                 </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#71717a" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#858178" }}>
                   {inc.affected_service}
                 </span>
               </div>

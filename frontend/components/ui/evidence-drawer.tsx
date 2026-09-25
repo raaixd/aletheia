@@ -34,15 +34,15 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
   const getSourceIcon = (src: string) => {
     switch (src.toUpperCase()) {
       case "OPENTELEMETRY":
-        return <Radio size={14} style={{ color: "#fb7185" }} />;
+        return <Radio size={14} style={{ color: "#c4685d" }} />;
       case "DEPLOYMENT":
-        return <Server size={14} style={{ color: "#38bdf8" }} />;
+        return <Server size={14} style={{ color: "#8fa58a" }} />;
       case "GIT":
-        return <GitCommit size={14} style={{ color: "#a78bfa" }} />;
+        return <GitCommit size={14} style={{ color: "#b7b2a9" }} />;
       case "PROMETHEUS":
-        return <Database size={14} style={{ color: "#fbbf24" }} />;
+        return <Database size={14} style={{ color: "#c29b38" }} />;
       default:
-        return <ShieldCheck size={14} style={{ color: "#10b981" }} />;
+        return <ShieldCheck size={14} style={{ color: "#8fa58a" }} />;
     }
   };
 
@@ -54,7 +54,7 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
         zIndex: 150,
         display: "flex",
         justifyContent: "flex-end",
-        backgroundColor: "rgba(0, 0, 0, 0.55)",
+        backgroundColor: "rgba(0, 0, 0, 0.65)",
         backdropFilter: "blur(4px)",
       }}
       onClick={onClose}
@@ -64,12 +64,12 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
           width: "100%",
           maxWidth: "500px",
           height: "100%",
-          backgroundColor: "#0d1017",
-          borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
+          backgroundColor: "#151513",
+          borderLeft: "1px solid #2e2c26",
           boxShadow: "-16px 0 48px rgba(0, 0, 0, 0.75)",
           display: "flex",
           flexDirection: "column",
-          color: "#f4f4f6",
+          color: "#e7e3dc",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -80,7 +80,7 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
             alignItems: "center",
             justifyContent: "space-between",
             padding: "18px 24px",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+            borderBottom: "1px solid #292823",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -90,7 +90,7 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: "0.6875rem",
-                  color: "#71717a",
+                  color: "#858178",
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
                 }}
@@ -101,8 +101,8 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: "1rem",
-                  fontWeight: 700,
-                  color: "#ffffff",
+                  fontWeight: 600,
+                  color: "#e7e3dc",
                 }}
               >
                 {evidence.id}
@@ -125,39 +125,39 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
               gap: "12px",
               paddingBottom: "20px",
               marginBottom: "20px",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              borderBottom: "1px solid #292823",
             }}
           >
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a", marginBottom: "2px" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#858178", marginBottom: "2px" }}>
                 SOURCE TELEMETRY
               </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#e4e4e7" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#d6d1c7" }}>
                 {evidence.source}
               </div>
             </div>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a", marginBottom: "2px" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#858178", marginBottom: "2px" }}>
                 TIMESTAMP
               </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#e4e4e7" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#d6d1c7" }}>
                 {evidence.timestamp}
               </div>
             </div>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a", marginBottom: "2px" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#858178", marginBottom: "2px" }}>
                 SERVICE COMPONENT
               </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#b7b2a9" }}>
                 {evidence.component}
               </div>
             </div>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a", marginBottom: "2px" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#858178", marginBottom: "2px" }}>
                 VERIFICATION AUDIT
               </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#10b981", display: "flex", alignItems: "center", gap: "4px" }}>
-                <span style={{ width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#10b981" }} />
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#8fa58a", display: "flex", alignItems: "center", gap: "5px" }}>
+                <span style={{ width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#8fa58a" }} />
                 VERIFIED (NO CORRUPTION)
               </div>
             </div>
@@ -181,7 +181,7 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
               style={{
                 fontSize: "0.875rem",
                 lineHeight: 1.5,
-                color: "#f4f4f6",
+                color: "#e7e3dc",
                 fontWeight: 500,
               }}
             >
@@ -203,7 +203,7 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: "0.625rem",
-                  color: "#71717a",
+                  color: "#858178",
                   textTransform: "uppercase",
                   letterSpacing: "0.06em",
                 }}
@@ -216,7 +216,7 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
                 style={{
                   background: "none",
                   border: "none",
-                  color: copied ? "#10b981" : "#889096",
+                  color: copied ? "#8fa58a" : "#858178",
                   fontSize: "0.6875rem",
                   fontFamily: "var(--font-mono)",
                   cursor: "pointer",
@@ -233,13 +233,13 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
 
             <pre
               style={{
-                backgroundColor: "#06080d",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                backgroundColor: "#10100f",
+                border: "1px solid #292823",
                 borderRadius: "4px",
                 padding: "14px",
                 fontFamily: "var(--font-mono)",
                 fontSize: "0.75rem",
-                color: "#e2e8f0",
+                color: "#b7b2a9",
                 overflowX: "auto",
                 lineHeight: 1.55,
               }}
@@ -253,7 +253,7 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
         <div
           style={{
             padding: "16px 24px",
-            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+            borderTop: "1px solid #292823",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -265,14 +265,14 @@ export function EvidenceDrawer({ evidence, onClose }: EvidenceDrawerProps) {
             style={{
               background: "none",
               border: "none",
-              color: "#71717a",
+              color: "#858178",
               fontFamily: "var(--font-mono)",
               fontSize: "0.75rem",
               cursor: "pointer",
               padding: 0,
             }}
           >
-            Copy Evidence ID: <span style={{ color: "#93c5fd" }}>{evidence.id}</span>
+            Copy Evidence ID: <span style={{ color: "#e7e3dc" }}>{evidence.id}</span>
           </button>
           <Button variant="outline" size="sm" onClick={onClose}>
             Done

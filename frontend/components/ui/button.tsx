@@ -59,38 +59,38 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     switch (variant) {
       case "outline":
         variantStyle = {
-          backgroundColor: "rgba(14, 18, 27, 0.75)",
-          borderColor: "rgba(255, 255, 255, 0.12)",
-          color: "#e2e8f0",
+          backgroundColor: "#181816",
+          borderColor: "#2e2c26",
+          color: "#e7e3dc",
         }
         break
       case "ghost":
         variantStyle = {
           backgroundColor: "transparent",
           borderColor: "transparent",
-          color: "#94a3b8",
+          color: "#b7b2a9",
         }
         break
       case "secondary":
         variantStyle = {
-          backgroundColor: "#161d2d",
-          borderColor: "rgba(255, 255, 255, 0.08)",
-          color: "#f1f5f9",
+          backgroundColor: "#20201d",
+          borderColor: "#33312b",
+          color: "#e7e3dc",
         }
         break
       case "destructive":
         variantStyle = {
-          backgroundColor: "rgba(225, 29, 72, 0.12)",
-          borderColor: "rgba(225, 29, 72, 0.35)",
-          color: "#fda4af",
+          backgroundColor: "rgba(196, 104, 93, 0.14)",
+          borderColor: "rgba(196, 104, 93, 0.35)",
+          color: "#f7d5d1",
         }
         break
       case "default":
       default:
         variantStyle = {
-          backgroundColor: "#1d4ed8",
-          borderColor: "#2563eb",
-          color: "#ffffff",
+          backgroundColor: "#262521",
+          borderColor: "#3d3a33",
+          color: "#e7e3dc",
         }
         break
     }

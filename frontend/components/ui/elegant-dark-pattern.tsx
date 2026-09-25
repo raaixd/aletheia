@@ -14,8 +14,8 @@ export function DarkGradientBg({ children, className = "" }: DarkGradientBgProps
         position: "relative",
         minHeight: "100vh",
         width: "100%",
-        backgroundColor: "#08090c",
-        color: "#f4f4f6",
+        backgroundColor: "#0f0f0e",
+        color: "#e7e3dc",
       }}
       className={className}
     >
@@ -28,8 +28,8 @@ export function DarkGradientBg({ children, className = "" }: DarkGradientBgProps
           pointerEvents: "none",
           zIndex: 0,
           backgroundImage: `
-            radial-gradient(circle 800px at 50% -80px, rgba(37, 99, 235, 0.08), transparent 70%),
-            radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
+            radial-gradient(circle 900px at 50% -120px, rgba(143, 165, 138, 0.04), transparent 70%),
+            radial-gradient(circle, rgba(231, 227, 220, 0.02) 1px, transparent 1px)
           `,
           backgroundSize: "auto, 28px 28px",
         }}

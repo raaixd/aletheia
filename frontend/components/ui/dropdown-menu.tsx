@@ -136,11 +136,11 @@ export function DropdownMenuContent({
         top: "calc(100% + 4px)",
         zIndex: 100,
         minWidth: "180px",
-        backgroundColor: "#0d111a",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        backgroundColor: "#161614",
+        border: "1px solid #2e2c26",
         borderRadius: "6px",
         padding: "4px",
-        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6)",
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5)",
         backdropFilter: "blur(12px)",
         ...alignStyle,
         ...style,
@@ -192,18 +192,20 @@ export function DropdownMenuItem({
         fontSize: "0.8125rem",
         borderRadius: "4px",
         cursor: "pointer",
-        color: isDestructive ? "#fda4af" : "#e2e8f0",
+        color: isDestructive ? "var(--signal-failure)" : "var(--text-secondary)",
         transition: "all 0.1s ease",
         userSelect: "none",
         ...style,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = isDestructive
-          ? "rgba(225, 29, 72, 0.15)"
-          : "rgba(255, 255, 255, 0.08)"
+          ? "rgba(196, 104, 93, 0.12)"
+          : "rgba(231, 227, 220, 0.05)"
+        if (!isDestructive) e.currentTarget.style.color = "var(--text-primary)"
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = "transparent"
+        if (!isDestructive) e.currentTarget.style.color = "var(--text-secondary)"
       }}
       {...props}
     >
@@ -217,7 +219,7 @@ export function DropdownMenuSeparator() {
     <div
       style={{
         height: "1px",
-        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        backgroundColor: "rgba(231, 227, 220, 0.07)",
         margin: "4px -4px",
       }}
     />
@@ -271,15 +273,15 @@ export function DropdownMenuSubTrigger({
         fontSize: "0.8125rem",
         borderRadius: "4px",
         cursor: "pointer",
-        color: "#e2e8f0",
-        backgroundColor: open ? "rgba(255, 255, 255, 0.08)" : "transparent",
+        color: "var(--text-secondary)",
+        backgroundColor: open ? "rgba(231, 227, 220, 0.05)" : "transparent",
         userSelect: "none",
         ...style,
       }}
       {...props}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>{children}</div>
-      <ChevronRight size={14} style={{ color: "#94a3b8" }} />
+      <ChevronRight size={14} style={{ color: "var(--text-muted)" }} />
     </div>
   )
 }
@@ -307,11 +309,11 @@ export function DropdownMenuSubContent({
         top: "-4px",
         zIndex: 110,
         minWidth: "150px",
-        backgroundColor: "#0d111a",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        backgroundColor: "#161614",
+        border: "1px solid #2e2c26",
         borderRadius: "6px",
         padding: "4px",
-        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.6)",
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
         backdropFilter: "blur(12px)",
         ...style,
       }}
@@ -378,21 +380,27 @@ export function DropdownMenuRadioItem({
         fontSize: "0.8125rem",
         borderRadius: "4px",
         cursor: "pointer",
-        color: isSelected ? "#ffffff" : "#cbd5e1",
-        backgroundColor: isSelected ? "rgba(37, 99, 235, 0.15)" : "transparent",
+        color: isSelected ? "var(--text-primary)" : "var(--text-secondary)",
+        backgroundColor: isSelected ? "rgba(143, 165, 138, 0.12)" : "transparent",
         userSelect: "none",
         ...style,
       }}
       onMouseEnter={(e) => {
-        if (!isSelected) e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)"
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = "rgba(231, 227, 220, 0.05)"
+          e.currentTarget.style.color = "var(--text-primary)"
+        }
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) e.currentTarget.style.backgroundColor = "transparent"
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = "transparent"
+          e.currentTarget.style.color = "var(--text-secondary)"
+        }
       }}
       {...props}
     >
       <span>{children}</span>
-      {isSelected && <Check size={14} style={{ color: "#60a5fa" }} />}
+      {isSelected && <Check size={14} style={{ color: "var(--accent-sage)" }} />}
     </div>
   )
 }

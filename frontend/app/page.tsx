@@ -562,10 +562,10 @@ export default function Home() {
           position: "sticky",
           top: 0,
           zIndex: 50,
-          backgroundColor: isScrolled ? "rgba(8, 9, 12, 0.94)" : "rgba(8, 9, 12, 0.8)",
+          backgroundColor: isScrolled ? "rgba(15, 15, 14, 0.94)" : "rgba(15, 15, 14, 0.82)",
           backdropFilter: "blur(14px)",
           WebkitBackdropFilter: "blur(14px)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+          borderBottom: "1px solid var(--border-hairline)",
           transition: "all 0.15s ease",
         }}
       >
@@ -588,14 +588,14 @@ export default function Home() {
                 width: "20px",
                 height: "20px",
                 borderRadius: "3px",
-                background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                backgroundColor: "#1c1c19",
+                border: "1px solid #2e2c26",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 700,
                 fontSize: "11px",
-                color: "#ffffff",
-                boxShadow: "0 0 10px rgba(37, 99, 235, 0.4)",
+                color: "var(--text-primary)",
               }}
             >
               A
@@ -605,8 +605,8 @@ export default function Home() {
                 fontFamily: "var(--font-mono)",
                 fontWeight: 600,
                 fontSize: "0.875rem",
-                letterSpacing: "0.12em",
-                color: "#ffffff",
+                letterSpacing: "0.14em",
+                color: "var(--text-primary)",
               }}
             >
               ALETHEIA
@@ -631,22 +631,22 @@ export default function Home() {
                   key={tab.id}
                   onClick={() => navigateToTab(tab.id, undefined, tab.id === "investigations" ? true : false)}
                   style={{
-                    background: isActive ? "rgba(255, 255, 255, 0.06)" : "transparent",
-                    border: isActive ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid transparent",
+                    background: isActive ? "rgba(231, 227, 220, 0.06)" : "transparent",
+                    border: isActive ? "1px solid rgba(231, 227, 220, 0.09)" : "1px solid transparent",
                     borderRadius: "4px",
                     padding: "5px 11px",
-                    color: isActive ? "#ffffff" : "#889096",
+                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                     fontFamily: "var(--font-sans)",
                     fontSize: "0.8125rem",
                     fontWeight: isActive ? 600 : 500,
                     cursor: "pointer",
-                    transition: "all 0.1s ease",
+                    transition: "all 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.color = "#ffffff";
+                    if (!isActive) e.currentTarget.style.color = "var(--text-primary)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.color = "#889096";
+                    if (!isActive) e.currentTarget.style.color = "var(--text-secondary)";
                   }}
                 >
                   {tab.label}
@@ -665,22 +665,22 @@ export default function Home() {
                 alignItems: "center",
                 gap: "8px",
                 padding: "4px 8px",
-                backgroundColor: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                backgroundColor: "rgba(231, 227, 220, 0.03)",
+                border: "1px solid var(--border-subtle)",
                 borderRadius: "4px",
-                color: "#71717a",
+                color: "var(--text-muted)",
                 fontSize: "0.75rem",
                 fontFamily: "var(--font-sans)",
                 cursor: "pointer",
                 transition: "all 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.18)";
-                e.currentTarget.style.color = "#ffffff";
+                e.currentTarget.style.borderColor = "var(--border-strong)";
+                e.currentTarget.style.color = "var(--text-primary)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
-                e.currentTarget.style.color = "#71717a";
+                e.currentTarget.style.borderColor = "var(--border-subtle)";
+                e.currentTarget.style.color = "var(--text-muted)";
               }}
             >
               <Search size={12} />
@@ -689,11 +689,11 @@ export default function Home() {
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: "0.625rem",
-                  backgroundColor: "rgba(255, 255, 255, 0.06)",
+                  backgroundColor: "rgba(231, 227, 220, 0.05)",
                   padding: "1px 4px",
                   borderRadius: "2px",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                  color: "#889096",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-muted)",
                 }}
               >
                 ⌘K
@@ -713,7 +713,7 @@ export default function Home() {
                 padding: "4px 6px",
                 fontFamily: "var(--font-mono)",
                 fontSize: "0.6875rem",
-                color: "#10b981",
+                color: "var(--accent-sage)",
               }}
               title="System operational (FastAPI Daemon 200 OK)"
             >
@@ -722,8 +722,7 @@ export default function Home() {
                   width: "6px",
                   height: "6px",
                   borderRadius: "50%",
-                  backgroundColor: "#10b981",
-                  boxShadow: "0 0 6px #10b981",
+                  backgroundColor: "var(--accent-sage)",
                 }}
               />
               <span className="hidden md:inline">Operational</span>
@@ -751,7 +750,7 @@ export default function Home() {
               <div style={{ maxWidth: "700px" }}>
                 <div className="section-tag" style={{ color: "var(--text-muted)", marginBottom: "8px" }}>
                   <ShieldCheck size={13} />
-                  INCIDENT INVESTIGATION
+                  INCIDENT INVESTIGATION INSTRUMENT
                 </div>
                 <h1
                   style={{
@@ -760,7 +759,7 @@ export default function Home() {
                     letterSpacing: "-0.03em",
                     lineHeight: 1.15,
                     marginBottom: "12px",
-                    color: "#ffffff",
+                    color: "var(--text-primary)",
                   }}
                 >
                   Find the truth behind the failure.
@@ -802,7 +801,7 @@ export default function Home() {
                 }}
               >
                 <div>
-                  <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "4px" }}>
+                  <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
                     Recent Investigations
                   </h2>
                   <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
@@ -823,7 +822,7 @@ export default function Home() {
                 >
                   <span>STATUS</span>
                   <span>INCIDENT</span>
-                  <span>ANOMALY / FAILURE SUMMARY</span>
+                  <span>ANOMALY & FAILURE SUMMARY</span>
                   <span>SERVICE</span>
                   <span style={{ textAlign: "right" }}>ACTION</span>
                 </div>
@@ -851,7 +850,7 @@ export default function Home() {
                           gap: "6px",
                           fontSize: "0.75rem",
                           fontFamily: "var(--font-mono)",
-                          color: inc.incident_id === "INC-001" ? "#34d399" : "#eab308",
+                          color: "var(--accent-sage)",
                         }}
                       >
                         <span
@@ -859,27 +858,27 @@ export default function Home() {
                             width: "6px",
                             height: "6px",
                             borderRadius: "50%",
-                            backgroundColor: inc.incident_id === "INC-001" ? "#10b981" : "#eab308",
+                            backgroundColor: "var(--accent-sage)",
                           }}
                         />
                         READY
                       </span>
                     </div>
 
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontWeight: 500, color: "#e2e8f0" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-primary)" }}>
                       {inc.incident_id}
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
-                      <span style={{ fontWeight: 600, fontSize: "0.875rem", color: "#f8fafc", lineHeight: 1.35 }}>
+                      <span style={{ fontWeight: 600, fontSize: "0.9375rem", color: "var(--text-primary)", lineHeight: 1.35 }}>
                         {inc.name}
                       </span>
-                      <span style={{ fontSize: "0.8125rem", color: "#94a3b8", lineHeight: 1.45 }}>
+                      <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.55 }}>
                         {inc.description}
                       </span>
                     </div>
 
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#94a3b8" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-muted)" }}>
                       {inc.affected_service}
                     </div>
 
@@ -895,7 +894,7 @@ export default function Home() {
                         style={{
                           background: "transparent",
                           border: "none",
-                          color: "#94a3b8",
+                          color: "var(--text-secondary)",
                           fontFamily: "var(--font-sans)",
                           fontSize: "0.8125rem",
                           cursor: "pointer",
@@ -907,11 +906,11 @@ export default function Home() {
                           transition: "all 0.15s ease",
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.color = "#ffffff";
-                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
+                          e.currentTarget.style.color = "var(--text-primary)";
+                          e.currentTarget.style.backgroundColor = "rgba(231, 227, 220, 0.04)";
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.color = "#94a3b8";
+                          e.currentTarget.style.color = "var(--text-secondary)";
                           e.currentTarget.style.backgroundColor = "transparent";
                         }}
                       >
@@ -928,7 +927,7 @@ export default function Home() {
               <div className="section-tag" style={{ color: "var(--text-muted)", marginBottom: "8px" }}>
                 <Layers size={13} /> INVESTIGATION WORKFLOW
               </div>
-              <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "16px" }}>
                 The 6-Stage Investigation Protocol
               </h2>
 
@@ -951,9 +950,9 @@ export default function Home() {
                     key={item.step}
                     style={{
                       padding: "16px 14px",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      border: "1px solid var(--border-hairline)",
                       borderRadius: "6px",
-                      backgroundColor: "rgba(255, 255, 255, 0.015)",
+                      backgroundColor: "rgba(231, 227, 220, 0.015)",
                     }}
                   >
                     <div
@@ -961,13 +960,13 @@ export default function Home() {
                         fontFamily: "var(--font-mono)",
                         fontSize: "0.6875rem",
                         fontWeight: 600,
-                        color: "#94a3b8",
+                        color: "var(--text-muted)",
                         marginBottom: "6px",
                       }}
                     >
                       {item.step}
                     </div>
-                    <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "#ffffff", marginBottom: "4px" }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--text-primary)", marginBottom: "4px" }}>
                       {item.title}
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: 1.45 }}>
@@ -995,7 +994,7 @@ export default function Home() {
                 gap: "12px",
                 marginBottom: "20px",
                 paddingBottom: "14px",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                borderBottom: "1px solid var(--border-hairline)",
               }}
             >
               {/* Breadcrumb Trail */}
@@ -1009,7 +1008,7 @@ export default function Home() {
                   Investigations
                 </button>
                 <span className="breadcrumb-separator">/</span>
-                <span style={{ color: "#ffffff", fontWeight: 600 }}>{selectedIncidentId}</span>
+                <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{selectedIncidentId}</span>
                 <span className="breadcrumb-separator">/</span>
                 <span style={{ color: "var(--text-secondary)" }}>{currentIncident.name}</span>
               </div>
@@ -1056,15 +1055,20 @@ export default function Home() {
                           justifyContent: "center",
                           fontSize: "0.625rem",
                           border: isComplete
-                            ? "1px solid #10b981"
+                            ? "1px solid var(--accent-sage)"
                             : isCurrent
-                            ? "1px solid #60a5fa"
-                            : "1px solid rgba(255, 255, 255, 0.15)",
+                            ? "1px solid var(--text-primary)"
+                            : "1px solid var(--border-subtle)",
                           backgroundColor: isComplete
-                            ? "rgba(16, 185, 129, 0.15)"
+                            ? "rgba(143, 165, 138, 0.12)"
                             : isCurrent
-                            ? "rgba(37, 99, 235, 0.2)"
+                            ? "rgba(231, 227, 220, 0.08)"
                             : "transparent",
+                          color: isComplete
+                            ? "var(--accent-sage)"
+                            : isCurrent
+                            ? "var(--text-primary)"
+                            : "var(--text-muted)",
                         }}
                       >
                         {isComplete ? "✓" : s.step}
@@ -1092,23 +1096,23 @@ export default function Home() {
                     marginBottom: "6px",
                   }}
                 >
-                  <span style={{ color: "#93c5fd", fontWeight: 600 }}>{currentIncident.incident_id}</span>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{currentIncident.incident_id}</span>
                   <span>•</span>
                   <span>{currentIncident.affected_service}</span>
                   <span>•</span>
-                  <span style={{ color: currentIncident.severity === "CRITICAL" ? "#fda4af" : "#fde68a" }}>
+                  <span style={{ color: currentIncident.severity === "CRITICAL" ? "var(--signal-failure)" : "var(--signal-warning)" }}>
                     {currentIncident.severity}
                   </span>
                   <span>•</span>
-                  <span style={{ color: "#10b981" }}>
+                  <span style={{ color: "var(--accent-sage)" }}>
                     {isLoading ? "RUNNING..." : "INVESTIGATION COMPLETE"}
                   </span>
                 </div>
 
-                <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#ffffff", marginBottom: "8px" }}>
+                <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "8px" }}>
                   {currentIncident.name}
                 </h1>
-                <p style={{ fontSize: "0.9375rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "0.9375rem", color: "var(--text-secondary)", lineHeight: 1.55 }}>
                   Checkout request latency increased from 42ms to 1,850ms following deployment v4.2.1 due to missing sort index on orders.
                 </p>
               </div>
@@ -1120,7 +1124,7 @@ export default function Home() {
                 <div className="section-tag">
                   <Activity size={12} /> 01. WHAT HAPPENED
                 </div>
-                <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "12px" }}>
+                <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "12px" }}>
                   Failure Progression & Impact Summary
                 </h3>
 
@@ -1155,17 +1159,17 @@ export default function Home() {
                         style={{
                           fontFamily: "var(--font-mono)",
                           fontSize: "0.75rem",
-                          color: "#3b82f6",
+                          color: "var(--text-muted)",
                           paddingTop: "2px",
                         }}
                       >
                         {item.num}.
                       </span>
                       <div>
-                        <span style={{ fontWeight: 600, color: "#ffffff", marginRight: "6px" }}>
+                        <span style={{ fontWeight: 600, color: "var(--text-primary)", marginRight: "6px" }}>
                           {item.title}:
                         </span>
-                        <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+                        <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem", lineHeight: 1.5 }}>
                           {item.text}
                         </span>
                       </div>
@@ -1183,7 +1187,7 @@ export default function Home() {
                     <div className="section-tag">
                       <ClockIcon size={12} /> 02. CHRONOLOGICAL TIMELINE
                     </div>
-                    <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff" }}>
+                    <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)" }}>
                       Sequence of Events & State Transitions
                     </h3>
                   </div>
@@ -1209,7 +1213,7 @@ export default function Home() {
                     <div className="section-tag">
                       <Layers size={12} /> 03. EXTRACTED EVIDENCE
                     </div>
-                    <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff" }}>
+                    <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)" }}>
                       Isolated Telemetry Records & Provenance
                     </h3>
                   </div>
@@ -1225,11 +1229,11 @@ export default function Home() {
                           border: "none",
                           fontFamily: "var(--font-mono)",
                           fontSize: "0.6875rem",
-                          color: evidenceCategoryFilter === cat ? "#ffffff" : "#71717a",
+                          color: evidenceCategoryFilter === cat ? "var(--text-primary)" : "var(--text-muted)",
                           cursor: "pointer",
                           padding: "2px 6px",
                           borderRadius: "3px",
-                          backgroundColor: evidenceCategoryFilter === cat ? "rgba(255, 255, 255, 0.08)" : "transparent",
+                          backgroundColor: evidenceCategoryFilter === cat ? "rgba(231, 227, 220, 0.08)" : "transparent",
                         }}
                       >
                         {cat === "ALL" ? "All" : cat === "OPENTELEMETRY" ? "Spans" : cat === "DEPLOYMENT" ? "Deployments" : "Commits"}
@@ -1256,20 +1260,20 @@ export default function Home() {
                       className="technical-list-row"
                       style={{ gridTemplateColumns: "110px 120px 100px 1fr 90px" }}
                     >
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#889096" }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
                         {ev.source}
                       </div>
 
-                      <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#93c5fd" }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)" }}>
                         {ev.id}
                       </div>
 
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#71717a" }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                         {ev.timestamp}
                       </div>
 
                       <div>
-                        <div style={{ color: "#ffffff", fontWeight: 500 }}>{ev.title}</div>
+                        <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{ev.title}</div>
                         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
                           Component: {ev.component}
                         </div>
@@ -1282,11 +1286,14 @@ export default function Home() {
                           style={{
                             background: "none",
                             border: "none",
-                            color: "#3b82f6",
+                            color: "var(--text-secondary)",
                             fontFamily: "var(--font-mono)",
                             fontSize: "0.75rem",
                             cursor: "pointer",
+                            transition: "color 0.15s ease",
                           }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
                         >
                           Inspect →
                         </button>
@@ -1303,7 +1310,7 @@ export default function Home() {
                 <div className="section-tag">
                   <BarChart3 size={12} /> 04. COMPETING HYPOTHESES
                 </div>
-                <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "12px" }}>
+                <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "12px" }}>
                   Analyst Causal Explanations Evaluated
                 </h3>
 
@@ -1326,19 +1333,19 @@ export default function Home() {
                         className="technical-list-row"
                         style={{
                           gridTemplateColumns: "60px 1fr 160px 140px",
-                          backgroundColor: isWinner ? "rgba(16, 185, 129, 0.03)" : "transparent",
+                          backgroundColor: isWinner ? "rgba(143, 165, 138, 0.04)" : "transparent",
                         }}
                       >
-                        <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: isWinner ? "#10b981" : "#52525b" }}>
+                        <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: isWinner ? "var(--accent-sage)" : "var(--text-faint)" }}>
                           #{hyp.rank}
                         </div>
 
                         <div>
-                          <div style={{ fontWeight: 600, color: "#ffffff", marginBottom: "2px" }}>
+                          <div style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: "2px" }}>
                             {hyp.hypothesis}
                           </div>
                           <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                            Trigger: <span style={{ fontFamily: "var(--font-mono)", color: "#93c5fd" }}>{hyp.suspected_trigger}</span>
+                            Trigger: <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>{hyp.suspected_trigger}</span>
                           </div>
                         </div>
 
@@ -1350,10 +1357,11 @@ export default function Home() {
                               fontWeight: 600,
                               padding: "2px 6px",
                               borderRadius: "3px",
+                              border: isWinner ? "1px solid rgba(143, 165, 138, 0.2)" : "1px solid rgba(196, 104, 93, 0.2)",
                               backgroundColor: isWinner
-                                ? "rgba(16, 185, 129, 0.12)"
-                                : "rgba(244, 63, 94, 0.12)",
-                              color: isWinner ? "#6ee7b7" : "#fda4af",
+                                ? "rgba(143, 165, 138, 0.12)"
+                                : "rgba(196, 104, 93, 0.12)",
+                              color: isWinner ? "var(--accent-sage)" : "var(--signal-failure)",
                             }}
                           >
                             {isWinner ? `VERIFIED (${Math.round(hyp.confidence * 100)}%)` : "REFUTED"}
@@ -1386,7 +1394,7 @@ export default function Home() {
                 <div className="section-tag">
                   <ShieldCheck size={12} /> 05. ADVERSARIAL VERIFICATION
                 </div>
-                <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "12px" }}>
+                <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "12px" }}>
                   Automated Precedence & Contradiction Audits
                 </h3>
 
@@ -1414,8 +1422,8 @@ export default function Home() {
                           width: "18px",
                           height: "18px",
                           borderRadius: "50%",
-                          backgroundColor: "rgba(16, 185, 129, 0.15)",
-                          color: "#10b981",
+                          backgroundColor: "rgba(143, 165, 138, 0.12)",
+                          color: "var(--accent-sage)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -1428,21 +1436,21 @@ export default function Home() {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
-                          <span style={{ fontWeight: 600, color: "#ffffff" }}>{auditItem.audit}</span>
+                          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{auditItem.audit}</span>
                           <span
                             style={{
                               fontFamily: "var(--font-mono)",
                               fontSize: "0.625rem",
                               padding: "1px 5px",
                               borderRadius: "2px",
-                              backgroundColor: "rgba(16, 185, 129, 0.1)",
-                              color: "#6ee7b7",
+                              backgroundColor: "rgba(143, 165, 138, 0.12)",
+                              color: "var(--accent-sage)",
                             }}
                           >
                             {auditItem.result}
                           </span>
                         </div>
-                        <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                        <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
                           {auditItem.desc}
                         </div>
                       </div>
@@ -1456,8 +1464,8 @@ export default function Home() {
               {/* 7. FINAL VERIFIED DIAGNOSIS (THE EARNED ENDPOINT) */}
               <div
                 style={{
-                  border: "1px solid rgba(16, 185, 129, 0.25)",
-                  backgroundColor: "rgba(16, 185, 129, 0.03)",
+                  border: "1px solid rgba(143, 165, 138, 0.22)",
+                  backgroundColor: "rgba(143, 165, 138, 0.03)",
                   borderRadius: "6px",
                   padding: "24px 24px",
                   marginBottom: "40px",
@@ -1469,7 +1477,7 @@ export default function Home() {
                       style={{
                         fontFamily: "var(--font-mono)",
                         fontSize: "0.6875rem",
-                        color: "#10b981",
+                        color: "var(--accent-sage)",
                         letterSpacing: "0.08em",
                         marginBottom: "4px",
                         display: "flex",
@@ -1477,9 +1485,9 @@ export default function Home() {
                         gap: "6px",
                       }}
                     >
-                      <CheckCircle2 size={13} color="#10b981" /> 06. FINAL DIAGNOSIS
+                      <CheckCircle2 size={13} color="var(--accent-sage)" /> 06. FINAL DIAGNOSIS
                     </div>
-                    <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff" }}>
+                    <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)" }}>
                       Verified Root Cause & Remediation
                     </h3>
                   </div>
@@ -1504,7 +1512,7 @@ export default function Home() {
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                       PRIMARY ROOT CAUSE
                     </div>
-                    <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#ffffff", lineHeight: 1.5 }}>
+                    <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.5 }}>
                       {diagnosis?.root_cause || "Database query performance regression due to unindexed sort on the orders table causing full table scans."}
                     </div>
                   </div>
@@ -1513,7 +1521,7 @@ export default function Home() {
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                       INTRODUCED BY
                     </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "#93c5fd" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
                       {diagnosis?.introduced_by || "deployment checkout-api:v4.2.1 (commit abc12348f9)"}
                     </div>
                   </div>
@@ -1523,7 +1531,7 @@ export default function Home() {
                       CALIBRATED CONFIDENCE
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "#10b981" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--accent-sage)" }}>
                         {Math.round((diagnosis?.confidence || 0.94) * 100)}%
                       </span>
                       <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
@@ -1536,7 +1544,7 @@ export default function Home() {
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                       REMEDIATION STEPS
                     </div>
-                    <div style={{ fontSize: "0.8125rem", color: "#f4f4f6" }}>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-primary)", lineHeight: 1.5 }}>
                       {diagnosis?.recommended_fix || "Apply composite index on orders(customer_id, created_at DESC) or rollback release v4.2.1."}
                     </div>
                   </div>
@@ -1599,7 +1607,7 @@ export default function Home() {
               <div style={{ position: "relative", minWidth: "280px" }}>
                 <Search
                   size={14}
-                  style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }}
+                  style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}
                 />
                 <input
                   type="text"
@@ -1611,10 +1619,10 @@ export default function Home() {
                     height: "32px",
                     paddingLeft: "32px",
                     paddingRight: "12px",
-                    backgroundColor: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    backgroundColor: "rgba(231, 227, 220, 0.03)",
+                    border: "1px solid var(--border-subtle)",
                     borderRadius: "4px",
-                    color: "#ffffff",
+                    color: "var(--text-primary)",
                     fontSize: "0.8125rem",
                     outline: "none",
                   }}
@@ -1682,7 +1690,7 @@ export default function Home() {
                         gap: "5px",
                         fontSize: "0.6875rem",
                         fontFamily: "var(--font-mono)",
-                        color: inc.incident_id === "INC-001" ? "#6ee7b7" : "#889096",
+                        color: inc.incident_id === "INC-001" ? "var(--accent-sage)" : "var(--text-muted)",
                       }}
                     >
                       <span
@@ -1690,25 +1698,25 @@ export default function Home() {
                           width: "5px",
                           height: "5px",
                           borderRadius: "50%",
-                          backgroundColor: inc.incident_id === "INC-001" ? "#10b981" : "#71717a",
+                          backgroundColor: inc.incident_id === "INC-001" ? "var(--accent-sage)" : "var(--text-muted)",
                         }}
                       />
                       {inc.incident_id === "INC-001" ? "VERIFIED" : "READY"}
                     </span>
                   </div>
 
-                  <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#ffffff" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)" }}>
                     {inc.incident_id}
                   </div>
 
                   <div>
-                    <div style={{ fontWeight: 500, color: "#ffffff" }}>{inc.name}</div>
+                    <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>{inc.name}</div>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                       {inc.description}
                     </div>
                   </div>
 
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                     {inc.affected_service}
                   </div>
 
@@ -1720,10 +1728,10 @@ export default function Home() {
                         fontWeight: 600,
                         color:
                           inc.severity === "CRITICAL"
-                            ? "#fda4af"
+                            ? "var(--signal-failure)"
                             : inc.severity === "HIGH"
-                            ? "#fde68a"
-                            : "#94a3b8",
+                            ? "var(--signal-warning)"
+                            : "var(--text-muted)",
                       }}
                     >
                       {inc.severity}
@@ -1741,11 +1749,14 @@ export default function Home() {
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#3b82f6",
+                        color: "var(--text-secondary)",
                         fontFamily: "var(--font-mono)",
                         fontSize: "0.75rem",
                         cursor: "pointer",
+                        transition: "color 0.15s ease",
                       }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
                     >
                       Investigate →
                     </button>
@@ -1798,14 +1809,14 @@ export default function Home() {
             {evidenceViewMode === "graph" ? (
               <div
                 style={{
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  border: "1px solid var(--border-subtle)",
                   borderRadius: "6px",
                   padding: "36px",
-                  backgroundColor: "rgba(10, 14, 22, 0.7)",
+                  backgroundColor: "rgba(20, 20, 18, 0.6)",
                 }}
               >
                 <div style={{ textAlign: "center", marginBottom: "36px" }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd", marginBottom: "4px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-primary)", marginBottom: "4px" }}>
                     DIRECTIONAL CAUSAL GRAPH (INC-001)
                   </div>
                   <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
@@ -1833,18 +1844,18 @@ export default function Home() {
                           borderRadius: "4px",
                           border:
                             selectedGraphNode === node.id
-                              ? "1px solid #3b82f6"
-                              : "1px solid rgba(255, 255, 255, 0.1)",
+                              ? "1px solid var(--accent-sage)"
+                              : "1px solid var(--border-subtle)",
                           backgroundColor:
                             selectedGraphNode === node.id
-                              ? "rgba(37, 99, 235, 0.12)"
-                              : "rgba(14, 18, 27, 0.8)",
+                              ? "rgba(143, 165, 138, 0.12)"
+                              : "#161614",
                           cursor: "pointer",
                           transition: "all 0.15s ease",
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a" }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-muted)" }}>
                             {node.type}
                           </span>
                           <span
@@ -1853,21 +1864,21 @@ export default function Home() {
                               fontSize: "0.5625rem",
                               padding: "1px 4px",
                               borderRadius: "2px",
-                              backgroundColor: "rgba(37, 99, 235, 0.2)",
-                              color: "#93c5fd",
+                              backgroundColor: "rgba(231, 227, 220, 0.06)",
+                              color: "var(--text-secondary)",
                             }}
                           >
                             {node.tag}
                           </span>
                         </div>
-                        <div style={{ fontWeight: 600, fontSize: "0.8125rem", color: "#ffffff", marginBottom: "2px" }}>
+                        <div style={{ fontWeight: 600, fontSize: "0.8125rem", color: "var(--text-primary)", marginBottom: "2px" }}>
                           {node.title}
                         </div>
-                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#889096" }}>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
                           {node.sub}
                         </div>
                       </div>
-                      {idx < 3 && <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: "1.1rem" }}>→</span>}
+                      {idx < 3 && <span style={{ color: "var(--text-muted)", fontWeight: 700, fontSize: "1.1rem" }}>→</span>}
                     </React.Fragment>
                   ))}
                 </div>
@@ -1892,20 +1903,20 @@ export default function Home() {
                     className="technical-list-row"
                     style={{ gridTemplateColumns: "110px 120px 100px 1fr 90px" }}
                   >
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#889096" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
                       {ev.source}
                     </div>
 
-                    <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#93c5fd" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)" }}>
                       {ev.id}
                     </div>
 
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#71717a" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                       {ev.timestamp}
                     </div>
 
                     <div>
-                      <div style={{ fontWeight: 500, color: "#ffffff" }}>{ev.title}</div>
+                      <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>{ev.title}</div>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
                         Component: {ev.component}
                       </div>
@@ -1918,11 +1929,14 @@ export default function Home() {
                         style={{
                           background: "none",
                           border: "none",
-                          color: "#3b82f6",
+                          color: "var(--text-secondary)",
                           fontFamily: "var(--font-mono)",
                           fontSize: "0.75rem",
                           cursor: "pointer",
+                          transition: "color 0.15s ease",
                         }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
                       >
                         Inspect →
                       </button>
@@ -1994,7 +2008,7 @@ export default function Home() {
                 <span>EVALUATION METRIC</span>
                 <span style={{ textAlign: "center" }}>SINGLE-LLM</span>
                 <span style={{ textAlign: "center" }}>2-AGENT BASELINE</span>
-                <span style={{ textAlign: "center", color: "#10b981" }}>ALETHEIA (3-AGENT)</span>
+                <span style={{ textAlign: "center", color: "var(--accent-sage)" }}>ALETHEIA (3-AGENT)</span>
               </div>
 
               {[
@@ -2010,10 +2024,10 @@ export default function Home() {
                   className="technical-list-row"
                   style={{ gridTemplateColumns: "1fr 140px 140px 160px" }}
                 >
-                  <div style={{ fontWeight: 500, color: "#ffffff" }}>{row.metric}</div>
-                  <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", color: "#889096" }}>{row.single}</div>
-                  <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", color: "#cbd5e1" }}>{row.two}</div>
-                  <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontWeight: 700, color: "#10b981" }}>{row.three}</div>
+                  <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>{row.metric}</div>
+                  <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{row.single}</div>
+                  <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>{row.two}</div>
+                  <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--accent-sage)" }}>{row.three}</div>
                 </div>
               ))}
             </div>
@@ -2045,21 +2059,21 @@ export default function Home() {
               }}
             >
               {[
-                { label: "API HEALTH", value: "HEALTHY (200 OK)", sub: "FastAPI Daemon Active", color: "#10b981" },
-                { label: "INFERENCE MODEL", value: "GPT-4O-MINI", sub: "Determinism Mode T=0.0", color: "#93c5fd" },
-                { label: "TOKEN SPEND (RUN)", value: "960 TOKENS", sub: "$0.00014 USD Est.", color: "#ffffff" },
-                { label: "P99 LATENCY", value: "2.1ms", sub: "In-memory graph traversal", color: "#10b981" },
+                { label: "API HEALTH", value: "HEALTHY (200 OK)", sub: "FastAPI Daemon Active", color: "var(--accent-sage)" },
+                { label: "INFERENCE MODEL", value: "GPT-4O-MINI", sub: "Determinism Mode T=0.0", color: "var(--text-primary)" },
+                { label: "TOKEN SPEND (RUN)", value: "960 TOKENS", sub: "$0.00014 USD Est.", color: "var(--text-primary)" },
+                { label: "P99 LATENCY", value: "2.1ms", sub: "In-memory graph traversal", color: "var(--accent-sage)" },
               ].map((m, idx) => (
                 <div
                   key={idx}
                   style={{
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    backgroundColor: "rgba(255, 255, 255, 0.015)",
+                    border: "1px solid var(--border-subtle)",
+                    backgroundColor: "rgba(231, 227, 220, 0.015)",
                     borderRadius: "4px",
                     padding: "14px 16px",
                   }}
                 >
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a", marginBottom: "4px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-muted)", marginBottom: "4px" }}>
                     {m.label}
                   </div>
                   <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "1rem", color: m.color, marginBottom: "2px" }}>
@@ -2073,7 +2087,7 @@ export default function Home() {
             {/* Live LLMOps Traces Table */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "12px" }}>
-                <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff" }}>
+                <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)" }}>
                   Live LLM Call Records & Accounting
                 </h3>
                 <Button variant="ghost" size="sm" onClick={() => runInvestigation(selectedIncidentId, selectedSystem)}>
@@ -2127,10 +2141,10 @@ export default function Home() {
                     className="technical-list-row"
                     style={{ gridTemplateColumns: "180px 140px 100px 110px 1fr" }}
                   >
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-primary)" }}>
                       {tr.trace_id}
                     </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#ffffff" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                       {tr.model}
                     </div>
                     <div>
@@ -2140,14 +2154,14 @@ export default function Home() {
                           fontSize: "0.625rem",
                           padding: "1px 5px",
                           borderRadius: "2px",
-                          backgroundColor: "rgba(16, 185, 129, 0.12)",
-                          color: "#6ee7b7",
+                          backgroundColor: "rgba(143, 165, 138, 0.12)",
+                          color: "var(--accent-sage)",
                         }}
                       >
                         {tr.status}
                       </span>
                     </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#889096" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                       {tr.latency_ms.toFixed(1)}ms
                     </div>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
