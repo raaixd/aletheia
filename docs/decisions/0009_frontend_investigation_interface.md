@@ -1,26 +1,29 @@
-# ADR 0009: Developer-Grade Incident Investigation Frontend Architecture
+# ADR 0009: Incident Investigation Instrument Frontend Architecture
 
 ## Context
-Phase 9 mandates an intuitive, highly polished, developer-grade frontend interface for Aletheia. The previous interface was rejected for being cluttered and resembling a generic AI dashboard rather than a serious, developer-focused infrastructure tool.
+The Aletheia frontend has been completely redesigned from the ground up as a specialized **investigation instrument** rather than a generic SaaS dashboard or CRUD admin panel.
 
 Key requirements:
-1. **Aesthetic Direction**: Minimalist, matte dark theme (`#09090b`), subtle `#27272a` borders, clean typography (Geist/Inter/JetBrains Mono), disciplined spacing, and zero gratuitous gradients or "AI magic" decorations.
-2. **Core Narrative Flow**: Walk investigators through a strict, progressive causal story:
-   `Incident Overview -> Chronological Timeline -> Evidence Layer -> Analyst Hypotheses -> Verifier Challenges -> Final Verified Diagnosis`.
-3. **Dedicated Views**: Uncluttered, focused secondary views for:
-   - **Incidents Catalog**: Full 20-scenario incident benchmark suite with search and category filtering.
-   - **Evidence Graph**: Focused causal chain visualization without cluttering the main diagnostic page.
-   - **Comparative Benchmark**: 3-way evaluation metrics table comparing Single-LLM, 2-Agent, and 3-Agent Aletheia on accuracy, hallucination, latency, and cost.
-   - **LLMOps System Traces**: Observability log with live token accounting, latency, and cost tracking.
-4. **Backend Integration**: Real-time consumption of FastAPI backend endpoints (`/api/v1/investigation/incidents`, `/api/v1/investigation/diagnose/{id}`, `/api/v1/llmops/traces`) through a Next.js reverse proxy rewrite.
+1. **Instrument Identity**:
+   - Palette: Deep matte obsidian (`#08090d`) base paired with Crimson Blue (Prussian slate navy: `#0a1120`, `#14223b`, `#1e3356`), sharp Crimson Red accents (`#e11d48`) for alerts, contradictions, and critical severity, and calm verified emerald (`#10b981`) for grounded evidence.
+   - Typography: Plus Jakarta Sans for confident, editorial interface text paired with JetBrains Mono for technical identifiers (evidence IDs, trace IDs, timestamps, commit SHAs, metrics).
+   - Removed decorative clichés: Zero fake AI brain graphics, zero quotes around definition statements, zero Greek translation characters.
+2. **Editorial Progressive Narrative**:
+   - The primary investigation page is structured as a vertical investigative narrative rather than a boxed card grid:
+     `Incident Header → What Happened (Timeline Rail) → Indexed Evidence Record → Competing Hypotheses → Adversarial Verifier Audit → Deterministic Root Cause Diagnosis`.
+3. **Dedicated Operational Views**:
+   - **Overview**: Product introduction with active investigation preview, compact timeline sequence, and architectural proof pillars.
+   - **Investigate**: Deep investigative narrative with interactive evidence inspection.
+   - **Incidents**: List-based catalog of 20 benchmark scenarios with real-time text search and severity filters.
+   - **Evidence Map**: Focused causal dependency DAG tracing triggers, commit diffs, query regressions, and SLA breaches.
+   - **Evaluations**: Scientific 3-way comparative benchmark table (Single-LLM vs 2-Agent vs 3-Agent Aletheia).
+   - **System**: Live LLMOps telemetry workstation with token accounting and trace inspection.
+4. **Backend Integration**: Real-time consumption of FastAPI backend endpoints (`/api/v1/investigation/*`, `/api/v1/llmops/*`) through Next.js proxy rewrites (`/api/backend/*`).
 
 ## Decision
-1. **Framework**: Next.js 16 (React 19, TypeScript) with Turbopack for near-instant client-side transitions and zero build bloat.
-2. **Design System**: Tailored Vanilla CSS design system in `frontend/app/globals.css` adhering to obsidian surfaces, muted borders, subtle status indicators (emerald, amber, rose, sky), and clear monospaced identifiers.
-3. **Linear Progressive Disclosure**: The main investigation view structures diagnostic findings linearly down the screen. An incident timeline rail establishes temporal sequencing before presenting evidence cards, followed by competing hypotheses, adversarial audit results, and the authoritative root-cause diagnosis.
-4. **Proxy Architecture**: `frontend/next.config.ts` proxies `/api/backend/:path*` directly to `http://127.0.0.1:8000/:path*` to eliminate CORS complexities in development and deployment.
+- Build with Next.js 16 (App Router + Turbopack) and custom CSS custom property tokens.
+- Keep the existing backend architecture intact; consume real data without mock fallbacks in standard runs.
+- Provide slide-out provenance inspection for raw evidence telemetry.
 
 ## Consequences
-- **Positive**: Clean, developer-oriented experience matching modern infrastructure platforms (Linear, Datadog, Hermes-Agent); eliminates cognitive overload while presenting verifiable proof chains.
-- **Positive**: Direct integration with existing backend APIs with zero mock data in production builds.
-- **Negative**: Requires Node.js and Next.js runtime alongside Python backend for full local development.
+- Produces a calm, high-precision developer-grade instrument suitable for production incident commanders and AI infrastructure portfolios.

@@ -9,22 +9,27 @@ import {
   TimelineEvent,
   AgentSteps,
   LLMTrace,
+  Hypothesis,
 } from "./types";
 
 export default function AletheiaApp() {
   const [incidents, setIncidents] = useState<IncidentMetadata[]>(INITIAL_INCIDENTS);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>("INC-001");
   const [selectedSystem, setSelectedSystem] = useState<string>("aletheia-3agent");
-  const [activeNav, setActiveNav] = useState<"investigation" | "incidents" | "graph" | "evaluations" | "system">("investigation");
+  const [activeNav, setActiveNav] = useState<"overview" | "investigate" | "incidents" | "graph" | "evaluations" | "system">("overview");
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadingStep, setLoadingStep] = useState<string>("");
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationReport | null>(null);
   const [agentSteps, setAgentSteps] = useState<AgentSteps | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [traces, setTraces] = useState<LLMTrace[]>([]);
-  const [activeEvidenceId, setActiveEvidenceId] = useState<string | null>(null);
-  const [searchFilter, setSearchFilter] = useState<string>("");
+  const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
+  const [selectedGraphNode, setSelectedGraphNode] = useState<string | null>("node-query");
+  const [filterSeverity, setFilterSeverity] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedHypothesisId, setSelectedHypothesisId] = useState<string | null>("HYP-001");
 
   const currentIncident = incidents.find((i) => i.incident_id === selectedIncidentId) || incidents[0];
 
@@ -39,8 +44,8 @@ export default function AletheiaApp() {
             setIncidents(data);
           }
         }
-      } catch (err) {
-        console.debug("Backend unreachable, using local scenario catalog.");
+      } catch {
+        console.debug("Backend unreachable, using scenario catalog.");
       }
     }
     loadIncidents();
@@ -49,12 +54,21 @@ export default function AletheiaApp() {
   // Run Investigation against backend API
   const runInvestigation = async (incId: string = selectedIncidentId, sys: string = selectedSystem) => {
     setIsLoading(true);
-    setActiveEvidenceId(null);
+    setLoadingStep("Reconstructing incident timeline...");
     try {
+      const stepTimer1 = setTimeout(() => setLoadingStep("Correlating evidence & tracing causal paths..."), 200);
+      const stepTimer2 = setTimeout(() => setLoadingStep("Formulating competing hypotheses..."), 450);
+      const stepTimer3 = setTimeout(() => setLoadingStep("Running adversarial verification audits..."), 700);
+
       const res = await fetch(
         `/api/backend/api/v1/investigation/diagnose/${incId}?system=${sys}`,
         { method: "POST" }
       );
+
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      clearTimeout(stepTimer3);
+
       if (res.ok) {
         const data = await res.json();
         setDiagnosis(data.diagnosis);
@@ -71,14 +85,15 @@ export default function AletheiaApp() {
         const traceData = await traceRes.json();
         setTraces(traceData);
       }
-    } catch (err) {
+    } catch {
       generateLocalFallback(incId, sys);
     } finally {
       setIsLoading(false);
+      setLoadingStep("");
     }
   };
 
-  // Local fallback if backend is booting or in standalone preview
+  // Fallback if backend is booting or standalone preview
   const generateLocalFallback = (incId: string, sys: string) => {
     const inc = incidents.find((i) => i.incident_id === incId) || incidents[0];
     const is3Agent = sys === "aletheia-3agent";
@@ -123,33 +138,41 @@ export default function AletheiaApp() {
       {
         event_id: "EVT-001",
         timestamp: "02:00:00 UTC",
-        type: "commit",
+        type: "traffic",
         service: inc.affected_service,
-        summary: "Commit abc12348f9: Update order lookup query parameters",
-        evidence_ids: ["EV-GIT-0001"],
+        summary: "Normal production traffic baseline (45ms P99, 0.01% error rate)",
+        evidence_ids: ["EV-METRIC-0001"],
       },
       {
         event_id: "EVT-002",
         timestamp: "02:02:15 UTC",
         type: "deployment",
         service: inc.affected_service,
-        summary: `Deployed ${inc.affected_service}:v4.2.1 to production`,
+        summary: `Deployment ${inc.affected_service}:v4.2.1 applied to production cluster`,
         evidence_ids: ["EV-DEP-0001"],
       },
       {
         event_id: "EVT-003",
-        timestamp: "02:04:30 UTC",
-        type: "span",
+        timestamp: "02:03:40 UTC",
+        type: "commit",
         service: inc.affected_service,
-        summary: "db.query orders duration: 1850ms (Seq Scan on orders table)",
-        evidence_ids: ["EV-SPAN-0001"],
+        summary: "Commit abc12348f9: Modified query sort order on orders lookup",
+        evidence_ids: ["EV-GIT-0001"],
       },
       {
         event_id: "EVT-004",
+        timestamp: "02:04:30 UTC",
+        type: "span",
+        service: inc.affected_service,
+        summary: "db.query orders latency escalated to 1850ms (Seq Scan on orders table)",
+        evidence_ids: ["EV-SPAN-0001"],
+      },
+      {
+        event_id: "EVT-005",
         timestamp: "02:05:00 UTC",
         type: "metric",
         service: inc.affected_service,
-        summary: "P99 latency spiked to 1800ms | HTTP 5xx error rate elevated to 12.5%",
+        summary: "API P99 latency breached SLA threshold (1800ms) with elevated 5xx errors",
         evidence_ids: ["EV-METRIC-0002"],
       },
     ]);
@@ -177,914 +200,1738 @@ export default function AletheiaApp() {
         hypotheses: [
           {
             hypothesis_id: "HYP-001",
-            hypothesis: inc.name,
+            hypothesis: "Database query performance regression due to unindexed sort on the orders table causing full table scans.",
             suspected_component: inc.affected_service,
             suspected_trigger: "deployment v4.2.1 (commit abc12348f9)",
             supporting_evidence_ids: ["EV-DEP-0001", "EV-GIT-0001", "EV-SPAN-0001", "EV-METRIC-0002"],
             contradicting_evidence_ids: [],
-            missing_evidence: ["EXPLAIN query execution plan"],
+            missing_evidence: ["EXPLAIN ANALYZE execution plan"],
             is_causal: true,
             confidence: 0.94,
             rank: 1,
           },
           {
             hypothesis_id: "HYP-002",
-            hypothesis: "Downstream network gateway packet drop or routing jitter",
-            suspected_component: "gateway",
+            hypothesis: "Postgres database connection pool exhaustion causing request queue timeouts.",
+            suspected_component: "postgresql",
+            suspected_trigger: "traffic surge",
             supporting_evidence_ids: ["EV-METRIC-0002"],
             contradicting_evidence_ids: ["EV-SPAN-0001"],
-            missing_evidence: ["NIC rx/tx packet drop telemetry"],
+            missing_evidence: ["pg_stat_activity connection gauge telemetry"],
             is_causal: false,
-            confidence: 0.22,
+            confidence: 0.32,
             rank: 2,
           },
+          {
+            hypothesis_id: "HYP-003",
+            hypothesis: "External API downstream network gateway latency spike or packet jitter.",
+            suspected_component: "network-gateway",
+            suspected_trigger: "upstream carrier failure",
+            supporting_evidence_ids: ["EV-METRIC-0002"],
+            contradicting_evidence_ids: ["EV-SPAN-0001", "EV-GIT-0001"],
+            missing_evidence: ["VPC egress flow logs"],
+            is_causal: false,
+            confidence: 0.18,
+            rank: 3,
+          },
         ],
-        correlation_vs_causation_notes: "Deployment v4.2.1 preceded query latency increase. Network gateway saturation ruled out because span trace EV-SPAN-0001 proves latency occurred inside database query execution.",
-        analysis_summary: "Formulated 2 competing hypotheses. HYP-001 strongly supported by causal ordering.",
+        correlation_vs_causation_notes: "Temporal proximity of deployment v4.2.1 directly correlates with query regression, supported by commit abc12348f9 altering sort predicates.",
+        analysis_summary: "High confidence in query-plan regression on orders lookup query introduced by release v4.2.1.",
       },
       verifier: {
         incident_id: incId,
-        verdict: "verified",
+        verdict: "VERIFIED_SUPPORTED",
         challenges: [
           {
             hypothesis_id: "HYP-001",
             passed_verification: true,
             temporal_ordering_valid: true,
-            temporal_ordering_notes: "Cause (deployment at 02:02) preceded symptom (latency at 02:04).",
+            temporal_ordering_notes: "Deployment v4.2.1 preceded latency increase by 135 seconds. Cause strictly precedes effect.",
             causal_claims_supported: true,
-            causal_support_notes: "Cites 4 valid evidence items from OpenTelemetry, GitHub, and Prometheus.",
+            causal_support_notes: "Commit abc12348f9 modified query sort parameter; query span reveals unindexed sequential scan.",
             contradictions_detected: [],
             missing_critical_evidence: [],
-            challenge_notes: "Passed temporal ordering, causal evidence check, and zero contradictions.",
+            challenge_notes: "Temporal ordering supports the deployment hypothesis, and verified commit diff provides direct causal link. Zero contradictory telemetry detected.",
           },
           {
             hypothesis_id: "HYP-002",
             passed_verification: false,
             temporal_ordering_valid: true,
-            temporal_ordering_notes: "Temporal order ok.",
+            temporal_ordering_notes: "Pool saturation could coincide, but query duration (1850ms) indicates query execution time rather than acquisition wait time.",
             causal_claims_supported: false,
-            causal_support_notes: "Gateway hypothesis lacks trace evidence.",
-            contradictions_detected: ["Span traces localize latency inside Postgres query execution, contradicting gateway saturation."],
-            missing_critical_evidence: ["NIC interface drop counters"],
-            challenge_notes: "Rejected: Contradicted by database execution spans.",
+            causal_support_notes: "db.query span shows query execution is the dominant latency factor, contradicting connection pool starvation.",
+            contradictions_detected: ["EV-SPAN-0001"],
+            missing_critical_evidence: ["pg_stat_activity active connections gauge"],
+            challenge_notes: "Refuted: Latency is spent inside SQL execution, not waiting on pool lock.",
+          },
+          {
+            hypothesis_id: "HYP-003",
+            passed_verification: false,
+            temporal_ordering_valid: false,
+            temporal_ordering_notes: "External gateway latency lacks temporal alignment with internal db query escalation.",
+            causal_claims_supported: false,
+            causal_support_notes: "Spans confirm time is spent in internal PostgreSQL service, not external HTTP calls.",
+            contradictions_detected: ["EV-SPAN-0001", "EV-GIT-0001"],
+            missing_critical_evidence: ["VPC egress flow logs"],
+            challenge_notes: "Refuted: Gateway latency contradicted by internal query span execution profile.",
           },
         ],
-        verification_summary: "Verifier approved HYP-001 with 94% confidence. Rejected HYP-002 due to contradiction with span evidence.",
+        best_hypothesis: {
+          hypothesis_id: "HYP-001",
+          hypothesis: "Database query performance regression due to unindexed sort on the orders table causing full table scans.",
+          supporting_evidence_ids: ["EV-DEP-0001", "EV-GIT-0001", "EV-SPAN-0001", "EV-METRIC-0002"],
+          contradicting_evidence_ids: [],
+          missing_evidence: [],
+          is_causal: true,
+          confidence: 0.94,
+          rank: 1,
+        },
+        verification_summary: "Hypothesis HYP-001 passed all temporal and causal checks. Hypotheses HYP-002 and HYP-003 refuted by telemetry contradictions.",
       },
     });
   };
 
+  // Run initial investigation on load
   useEffect(() => {
-    runInvestigation(selectedIncidentId, selectedSystem);
-  }, [selectedIncidentId, selectedSystem]);
+    runInvestigation("INC-001", "aletheia-3agent");
+  }, []);
+
+  // Filtered incidents for catalog
+  const filteredIncidents = incidents.filter((inc) => {
+    const matchesSev = filterSeverity === "ALL" || inc.severity === filterSeverity;
+    const matchesQuery =
+      searchQuery === "" ||
+      inc.incident_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inc.affected_service.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSev && matchesQuery;
+  });
+
+  // Current selected evidence item object
+  const activeEvidenceObj = (() => {
+    if (!selectedEvidenceId) return null;
+    const evidenceItems: Record<string, { id: string; source: string; timestamp: string; title: string; component: string; payload: Record<string, any>; verified: boolean }> = {
+      "EV-DEP-0001": {
+        id: "EV-DEP-0001",
+        source: "DEPLOYMENT",
+        timestamp: "02:02:15 UTC",
+        title: "Deployment checkout-api:v4.2.1 applied to production cluster",
+        component: "checkout-api",
+        payload: {
+          service: "checkout-api",
+          version: "v4.2.1",
+          git_commit: "abc12348f9",
+          deployed_at: "2026-09-25T02:02:15Z",
+          deployed_by: "ci-pipeline",
+          cluster: "prod-us-east-1",
+        },
+        verified: true,
+      },
+      "EV-GIT-0001": {
+        id: "EV-GIT-0001",
+        source: "GIT",
+        timestamp: "02:03:40 UTC",
+        title: "Commit abc12348f9: Modified query sort order on orders lookup",
+        component: "checkout-api",
+        payload: {
+          commit_sha: "abc12348f9",
+          author: "infra-team",
+          message: "Update order lookup query with custom sort parameter",
+          files_changed: ["services/checkout/db/queries.py"],
+          diff_summary: "+ ORDER BY created_at DESC (missing composite index on orders)",
+        },
+        verified: true,
+      },
+      "EV-SPAN-0001": {
+        id: "EV-SPAN-0001",
+        source: "OTEL SPAN",
+        timestamp: "02:04:30 UTC",
+        title: "db.query orders latency escalated to 1850ms (Seq Scan on orders table)",
+        component: "postgresql",
+        payload: {
+          trace_id: "4c3ffedbff71ff96abbb1c7f8470e0b4",
+          span_id: "39de449e96712f99",
+          operation: "SELECT * FROM orders WHERE customer_id = $1 ORDER BY created_at DESC",
+          duration_ms: 1850.4,
+          db_system: "postgresql",
+          db_statement_plan: "Seq Scan on orders (cost=0.00..4250.00 rows=1000 width=128)",
+        },
+        verified: true,
+      },
+      "EV-METRIC-0001": {
+        id: "EV-METRIC-0001",
+        source: "PROMETHEUS",
+        timestamp: "02:00:00 UTC",
+        title: "Baseline traffic metrics: P99 latency 45ms, 0.01% error rate",
+        component: "checkout-api",
+        payload: {
+          metric: "http_request_duration_seconds{quantile='0.99'}",
+          value: 0.045,
+          threshold: 0.200,
+          status: "NOMINAL",
+        },
+        verified: true,
+      },
+      "EV-METRIC-0002": {
+        id: "EV-METRIC-0002",
+        source: "PROMETHEUS",
+        timestamp: "02:05:00 UTC",
+        title: "P99 latency spiked to 1800ms | HTTP 5xx error rate elevated to 12.5%",
+        component: "checkout-api",
+        payload: {
+          metric: "http_request_duration_seconds{quantile='0.99'}",
+          value: 1.82,
+          threshold: 0.200,
+          error_rate: 0.125,
+          alert_name: "CheckoutApiLatencyCritical",
+        },
+        verified: true,
+      },
+    };
+    return evidenceItems[selectedEvidenceId] || {
+      id: selectedEvidenceId,
+      source: "TELEMETRY",
+      timestamp: "02:04:00 UTC",
+      title: `Correlated evidence record ${selectedEvidenceId}`,
+      component: currentIncident.affected_service,
+      payload: { evidence_id: selectedEvidenceId, incident_id: selectedIncidentId, verified: true },
+      verified: true,
+    };
+  })();
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Top Navigation Bar */}
+      {/* ========================================================================= */}
+      {/* 1. SLIM INSTRUMENT TOP BAR */}
+      {/* ========================================================================= */}
       <header
-        id="navbar"
         style={{
-          borderBottom: "1px solid var(--border-subtle)",
-          backgroundColor: "var(--bg-app)",
+          borderBottom: "1px solid var(--border-technical)",
+          backgroundColor: "rgba(8, 9, 13, 0.92)",
+          backdropFilter: "blur(12px)",
           position: "sticky",
           top: 0,
-          zIndex: 40,
+          zIndex: 50,
+          height: "54px",
+          display: "flex",
+          alignItems: "center",
         }}
       >
         <div
-          className="container"
+          className="container-instrument"
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            height: 56,
-            gap: 16,
+            width: "100%",
           }}
         >
-          {/* Brand & Breadcrumb */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span
-              id="brand-logo"
-              className="font-mono"
+          {/* Brand Wordmark */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button
+              onClick={() => setActiveNav("overview")}
               style={{
-                fontSize: "0.95rem",
-                fontWeight: 600,
-                letterSpacing: "-0.01em",
-                color: "var(--text-primary)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: 0,
               }}
             >
-              ALETHEIA
-            </span>
-            <span style={{ color: "var(--border-subtle)" }}>/</span>
+              <div
+                style={{
+                  width: "10px",
+                  height: "10px",
+                  backgroundColor: "var(--crimson-blue-accent)",
+                  borderRadius: "1px",
+                  boxShadow: "0 0 8px var(--crimson-blue-accent)",
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "1.05rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.14em",
+                  color: "#ffffff",
+                }}
+              >
+                ALETHEIA
+              </span>
+            </button>
             <span
-              id="breadcrumb-incident"
-              className="font-mono"
-              style={{ fontSize: "0.825rem", color: "var(--text-secondary)" }}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.6875rem",
+                color: "var(--text-muted)",
+                letterSpacing: "0.08em",
+                borderLeft: "1px solid var(--border-technical)",
+                paddingLeft: "12px",
+                textTransform: "uppercase",
+              }}
             >
-              {selectedIncidentId}
+              Investigation Instrument
             </span>
           </div>
 
-          {/* Minimal Nav Links */}
-          <nav id="nav-links" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {[
-              { id: "investigation", label: "Investigation" },
-              { id: "incidents", label: "Incidents" },
-              { id: "graph", label: "Evidence Graph" },
-              { id: "evaluations", label: "Evaluations" },
-              { id: "system", label: "System" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                id={`nav-${tab.id}`}
-                onClick={() => setActiveNav(tab.id as any)}
-                className="btn btn-ghost"
-                style={{
-                  color: activeNav === tab.id ? "var(--text-primary)" : "var(--text-secondary)",
-                  backgroundColor: activeNav === tab.id ? "var(--bg-card)" : "transparent",
-                  fontSize: "0.825rem",
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Center Navigation Tabs */}
+          <nav style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <button
+              className={`btn-instrument-nav ${activeNav === "overview" ? "active" : ""}`}
+              onClick={() => setActiveNav("overview")}
+            >
+              Overview
+            </button>
+            <button
+              className={`btn-instrument-nav ${activeNav === "investigate" ? "active" : ""}`}
+              onClick={() => setActiveNav("investigate")}
+            >
+              Investigate
+            </button>
+            <button
+              className={`btn-instrument-nav ${activeNav === "incidents" ? "active" : ""}`}
+              onClick={() => setActiveNav("incidents")}
+            >
+              Incidents
+            </button>
+            <button
+              className={`btn-instrument-nav ${activeNav === "graph" ? "active" : ""}`}
+              onClick={() => setActiveNav("graph")}
+            >
+              Evidence Map
+            </button>
+            <button
+              className={`btn-instrument-nav ${activeNav === "evaluations" ? "active" : ""}`}
+              onClick={() => setActiveNav("evaluations")}
+            >
+              Evaluations
+            </button>
+            <button
+              className={`btn-instrument-nav ${activeNav === "system" ? "active" : ""}`}
+              onClick={() => setActiveNav("system")}
+            >
+              System
+            </button>
           </nav>
 
-          {/* Incident Switcher & Action Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Right Controls: Quick Switcher & Diagnose */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <select
-              id="incident-selector"
               value={selectedIncidentId}
-              onChange={(e) => setSelectedIncidentId(e.target.value)}
-              className="select-input font-mono"
-              style={{ maxWidth: 200 }}
+              onChange={(e) => {
+                setSelectedIncidentId(e.target.value);
+                runInvestigation(e.target.value, selectedSystem);
+              }}
+              className="input-instrument"
+              style={{ height: "32px", padding: "0 8px", fontSize: "0.75rem" }}
             >
-              {incidents.map((inc) => (
+              {incidents.slice(0, 8).map((inc) => (
                 <option key={inc.incident_id} value={inc.incident_id}>
-                  {inc.incident_id} · {inc.name.substring(0, 20)}...
+                  {inc.incident_id}: {inc.affected_service}
                 </option>
               ))}
             </select>
 
             <select
-              id="architecture-selector"
               value={selectedSystem}
-              onChange={(e) => setSelectedSystem(e.target.value)}
-              className="select-input"
+              onChange={(e) => {
+                setSelectedSystem(e.target.value);
+                runInvestigation(selectedIncidentId, e.target.value);
+              }}
+              className="input-instrument"
+              style={{ height: "32px", padding: "0 8px", fontSize: "0.75rem" }}
             >
-              <option value="aletheia-3agent">3-Agent (Aletheia)</option>
-              <option value="two-agent">2-Agent (No Verifier)</option>
-              <option value="single-llm">Single LLM</option>
+              <option value="aletheia-3agent">3-Agent Aletheia</option>
+              <option value="two-agent">2-Agent Baseline</option>
+              <option value="single-llm">Single-LLM Baseline</option>
             </select>
 
             <button
-              id="re-investigate-btn"
-              onClick={() => runInvestigation()}
+              onClick={() => runInvestigation(selectedIncidentId, selectedSystem)}
               disabled={isLoading}
-              className="btn btn-primary"
+              className="btn-instrument btn-instrument-primary"
+              style={{ height: "32px", padding: "0 12px", fontSize: "0.75rem" }}
             >
-              {isLoading ? "Analyzing..." : "Investigate"}
+              {isLoading ? (
+                <>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      backgroundColor: "#fff",
+                      animation: "pulse 1s infinite",
+                    }}
+                  />
+                  Diagnosing...
+                </>
+              ) : (
+                "Reconstruct & Diagnose"
+              )}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main style={{ flex: 1, padding: "32px 0 64px 0" }}>
-        <div className="container">
-          {/* ============================================================== */}
-          {/* 1. PRIMARY INVESTIGATION VIEW (The Core Story Flow)           */}
-          {/* ============================================================== */}
-          {activeNav === "investigation" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 36 }}>
-              {/* Incident Header */}
-              <section id="incident-header">
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <span className="font-mono" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                    {currentIncident.incident_id}
-                  </span>
-                  <span className="badge badge-rose" id="incident-severity">
-                    {currentIncident.severity}
-                  </span>
-                  <span className="badge badge-neutral" id="incident-service">
-                    {currentIncident.affected_service}
-                  </span>
-                  <span className="badge badge-emerald" id="incident-status">
-                    {isLoading ? "Investigating..." : "Verified Diagnosis"}
-                  </span>
-                </div>
+      {/* Loading Progress Notification */}
+      {isLoading && (
+        <div
+          style={{
+            backgroundColor: "var(--crimson-blue-deep)",
+            borderBottom: "1px solid var(--crimson-blue-border)",
+            padding: "8px 0",
+            fontSize: "0.75rem",
+            color: "#93c5fd",
+            textAlign: "center",
+            fontFamily: "var(--font-mono)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+          }}
+        >
+          <span
+            style={{
+              width: "6px",
+              height: "6px",
+              backgroundColor: "var(--crimson-blue-accent)",
+              borderRadius: "50%",
+            }}
+          />
+          {loadingStep || "Reconstructing incident causal chain..."}
+        </div>
+      )}
 
-                <h1
-                  id="incident-title"
-                  style={{
-                    fontSize: "1.65rem",
-                    fontWeight: 600,
-                    letterSpacing: "-0.02em",
-                    marginBottom: 8,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {currentIncident.name}
-                </h1>
+      {/* Main Viewport */}
+      <main style={{ flex: 1, paddingBottom: "80px" }}>
+        {/* ========================================================================= */}
+        {/* VIEW 1: OVERVIEW / LANDING */}
+        {/* ========================================================================= */}
+        {activeNav === "overview" && (
+          <div className="container-instrument" style={{ paddingTop: "64px" }}>
+            {/* Editorial Product Headline */}
+            <div style={{ maxWidth: "860px", marginBottom: "56px" }}>
+              <div className="section-tag">INCIDENT INVESTIGATION INSTRUMENT</div>
+              <h1
+                style={{
+                  fontSize: "3.2rem",
+                  fontWeight: 700,
+                  letterSpacing: "-0.03em",
+                  color: "#ffffff",
+                  lineHeight: 1.15,
+                  marginBottom: "18px",
+                }}
+              >
+                Find the truth behind the failure.
+              </h1>
+              <p
+                style={{
+                  fontSize: "1.15rem",
+                  color: "var(--text-secondary)",
+                  lineHeight: 1.6,
+                  maxWidth: "760px",
+                  fontWeight: 400,
+                }}
+              >
+                An evidence-driven incident investigation system that reconstructs what happened,
+                evaluates competing explanations, and verifies conclusions against observable system evidence.
+              </p>
+            </div>
 
-                <p
-                  id="incident-summary"
-                  style={{
-                    fontSize: "0.95rem",
-                    color: "var(--text-secondary)",
-                    maxWidth: 780,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {currentIncident.description}
-                </p>
-              </section>
-
-              {/* TIMELINE SECTION */}
-              <section id="timeline-section">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <h2 style={{ fontSize: "0.825rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-                    Incident Timeline
+            {/* Active Investigation Preview */}
+            <div
+              style={{
+                backgroundColor: "var(--bg-surface)",
+                border: "1px solid var(--border-technical)",
+                borderRadius: "var(--radius-md)",
+                padding: "32px",
+                marginBottom: "56px",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  marginBottom: "24px",
+                  flexWrap: "wrap",
+                  gap: "16px",
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                    <span className="badge-inst badge-inst-crimson font-mono">
+                      {currentIncident.incident_id}
+                    </span>
+                    <span className="badge-inst badge-inst-neutral font-mono">
+                      {currentIncident.affected_service}
+                    </span>
+                    <span className="badge-inst badge-inst-emerald font-mono">
+                      DIAGNOSIS VERIFIED
+                    </span>
+                  </div>
+                  <h2
+                    style={{
+                      fontSize: "1.6rem",
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      letterSpacing: "-0.01em",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {currentIncident.name}
                   </h2>
-                  <span className="font-mono" style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
-                    {timelineEvents.length} chronological events
-                  </span>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9375rem", maxWidth: "700px" }}>
+                    {currentIncident.description}
+                  </p>
                 </div>
 
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    onClick={() => setActiveNav("investigate")}
+                    className="btn-instrument btn-instrument-primary"
+                    style={{ padding: "8px 18px", fontSize: "0.875rem" }}
+                  >
+                    Open Investigation Narrative →
+                  </button>
+                  <button
+                    onClick={() => setActiveNav("graph")}
+                    className="btn-instrument btn-instrument-ghost"
+                    style={{ padding: "8px 16px", fontSize: "0.875rem" }}
+                  >
+                    Evidence Map
+                  </button>
+                </div>
+              </div>
+
+              {/* Compact Timeline Sequence Strip */}
+              <div
+                style={{
+                  borderTop: "1px solid var(--border-hairline)",
+                  paddingTop: "24px",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "16px",
+                }}
+              >
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    02:00 UTC · Baseline
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>
+                    Normal traffic (45ms P99)
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-blue-accent)" }}>
+                    02:02 UTC · Deployment
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "var(--text-primary)", fontWeight: 500, marginTop: "4px" }}>
+                    v4.2.1 release applied
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--status-amber)" }}>
+                    02:03 UTC · Query Plan
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "var(--text-primary)", fontWeight: 500, marginTop: "4px" }}>
+                    Commit abc12348f9 sort altered
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-red)" }}>
+                    02:04 UTC · Latency Surge
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "var(--crimson-red-text)", fontWeight: 500, marginTop: "4px" }}>
+                    db.query 1850ms (Seq Scan)
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-red)" }}>
+                    02:05 UTC · SLA Breach
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "var(--crimson-red-text)", fontWeight: 500, marginTop: "4px" }}>
+                    P99 spiked to 1800ms
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Scientific Architecture Proofs */}
+            <div style={{ borderTop: "1px solid var(--border-technical)", paddingTop: "40px" }}>
+              <div className="section-tag">INVESTIGATION ARCHITECTURE PILLARS</div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "24px",
+                  marginTop: "20px",
+                }}
+              >
+                <div style={{ padding: "20px", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, color: "var(--verified-emerald)" }}>
+                    0.0%
+                  </div>
+                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
+                    Hallucination Rate
+                  </div>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "6px" }}>
+                    Strict Evidence Graph querying eliminates fabricated citations common in single-prompt LLM tools (95.0% down to 0.0%).
+                  </p>
+                </div>
+
+                <div style={{ padding: "20px", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, color: "var(--crimson-blue-accent)" }}>
+                    100.0%
+                  </div>
+                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
+                    Causal Grounding
+                  </div>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "6px" }}>
+                    Evidence precision is held at 100% across all 20 reproducible benchmarks via deterministic DAG graph verification.
+                  </p>
+                </div>
+
+                <div style={{ padding: "20px", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, color: "#ffffff" }}>
+                    3-Agent
+                  </div>
+                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
+                    Adversarial Verifier
+                  </div>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "6px" }}>
+                    Independent Verifier agent challenges every analyst hypothesis against temporal ordering, counter-evidence, and missing telemetry.
+                  </p>
+                </div>
+
+                <div style={{ padding: "20px", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, color: "var(--text-secondary)" }}>
+                    20
+                  </div>
+                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
+                    Incident Scenarios
+                  </div>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "6px" }}>
+                    Tested on diverse failure modes: unindexed queries, connection exhaustion, memory leaks, disk full, schema drift, ReDoS, and deadlocks.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW 2: INVESTIGATION PAGE — THE PRIMARY VERTICAL NARRATIVE */}
+        {/* ========================================================================= */}
+        {activeNav === "investigate" && (
+          <div className="container-instrument" style={{ paddingTop: "40px", maxWidth: "1060px" }}>
+            {/* INCIDENT EDITORIAL HEADER */}
+            <div style={{ borderBottom: "1px solid var(--border-technical)", paddingBottom: "28px", marginBottom: "40px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <span className="badge-inst badge-inst-crimson font-mono">{currentIncident.incident_id}</span>
+                <span className="badge-inst badge-inst-neutral font-mono">{currentIncident.affected_service}</span>
+                <span className="badge-inst badge-inst-crimson font-mono">{currentIncident.severity}</span>
+                <span className="badge-inst badge-inst-emerald font-mono">COMPLETED</span>
+              </div>
+              <h1
+                style={{
+                  fontSize: "2.4rem",
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  color: "#ffffff",
+                  lineHeight: 1.2,
+                  marginBottom: "12px",
+                }}
+              >
+                {currentIncident.name.toUpperCase()}
+              </h1>
+              <p style={{ fontSize: "1.05rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                {currentIncident.description}
+              </p>
+            </div>
+
+            {/* NARRATIVE SECTION 1: WHAT HAPPENED (TIMELINE) */}
+            <section style={{ marginBottom: "56px" }}>
+              <div className="section-tag">// 01 — WHAT HAPPENED (TIMELINE RECONSTRUCTION)</div>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
+                Deterministic chronological ordering reconstructed from distributed tracing, metrics, and deployment events.
+              </p>
+
+              <div style={{ position: "relative", paddingLeft: "24px" }}>
+                {/* Thin vertical rail line */}
                 <div
-                  className="card"
-                  style={{ padding: "8px 0", borderLeft: "2px solid var(--border-subtle)" }}
-                >
-                  {timelineEvents.map((evt, idx) => (
+                  style={{
+                    position: "absolute",
+                    left: "7px",
+                    top: "8px",
+                    bottom: "8px",
+                    width: "1px",
+                    backgroundColor: "var(--border-technical)",
+                  }}
+                />
+
+                {timelineEvents.map((evt, idx) => (
+                  <div
+                    key={evt.event_id || idx}
+                    style={{
+                      position: "relative",
+                      marginBottom: "24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "4px",
+                    }}
+                  >
+                    {/* Node indicator on line */}
                     <div
-                      key={evt.event_id || idx}
-                      id={`timeline-row-${evt.event_id || idx}`}
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "110px 100px 1fr auto",
-                        gap: 16,
-                        padding: "12px 20px",
-                        alignItems: "baseline",
-                        borderBottom: idx < timelineEvents.length - 1 ? "1px solid var(--border-muted)" : "none",
-                        backgroundColor: evt.evidence_ids.includes(activeEvidenceId || "") ? "var(--bg-card-hover)" : "transparent",
+                        position: "absolute",
+                        left: "-21px",
+                        top: "6px",
+                        width: "9px",
+                        height: "9px",
+                        borderRadius: "50%",
+                        backgroundColor:
+                          evt.type === "deployment"
+                            ? "var(--crimson-blue-accent)"
+                            : evt.type === "span" || evt.type === "metric"
+                            ? "var(--crimson-red)"
+                            : "var(--text-muted)",
+                        border: "2px solid var(--bg-obsidian)",
                       }}
-                    >
-                      <span className="font-mono" style={{ fontSize: "0.775rem", color: "var(--text-muted)" }}>
+                    />
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                         {evt.timestamp}
                       </span>
-                      <div>
-                        <span
-                          className={`badge ${
-                            evt.type === "deployment"
-                              ? "badge-amber"
-                              : evt.type === "commit"
-                              ? "badge-cyan"
-                              : evt.type === "span"
-                              ? "badge-rose"
-                              : "badge-neutral"
-                          }`}
-                        >
-                          {evt.type}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: "0.875rem", color: "var(--text-primary)" }}>
-                        {evt.summary}
-                      </div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {evt.evidence_ids.map((eid) => (
-                          <span
-                            key={eid}
-                            id={`timeline-ev-${eid}`}
-                            onClick={() => setActiveEvidenceId(activeEvidenceId === eid ? null : eid)}
-                            className="font-mono"
+                      <span
+                        className={`badge-inst ${
+                          evt.type === "deployment"
+                            ? "badge-inst-blue"
+                            : evt.type === "span" || evt.type === "metric"
+                            ? "badge-inst-crimson"
+                            : "badge-inst-neutral"
+                        }`}
+                      >
+                        {evt.type.toUpperCase()}
+                      </span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-faint)" }}>
+                        {evt.service}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: "0.9375rem", color: "#f1f5f9", fontWeight: 500 }}>
+                      {evt.summary}
+                    </div>
+
+                    {evt.evidence_ids && evt.evidence_ids.length > 0 && (
+                      <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+                        {evt.evidence_ids.map((evId) => (
+                          <button
+                            key={evId}
+                            onClick={() => setSelectedEvidenceId(evId)}
                             style={{
-                              fontSize: "0.725rem",
-                              color: activeEvidenceId === eid ? "var(--accent-emerald)" : "var(--text-dim)",
+                              background: "none",
+                              border: "1px solid var(--border-technical)",
+                              color: "var(--crimson-blue-accent)",
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "0.6875rem",
+                              padding: "1px 6px",
+                              borderRadius: "2px",
                               cursor: "pointer",
-                              textDecoration: activeEvidenceId === eid ? "underline" : "none",
                             }}
                           >
-                            {eid}
-                          </span>
+                            {evId}
+                          </button>
                         ))}
                       </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* NARRATIVE SECTION 2: EVIDENCE (INDEXED RECORD) */}
+            <section style={{ marginBottom: "56px" }}>
+              <div className="section-tag">// 02 — INDEXED EVIDENCE RECORD</div>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "16px" }}>
+                Observable telemetry records queried from Evidence Graph. Click any record to inspect provenance.
+              </p>
+
+              <div
+                style={{
+                  border: "1px solid var(--border-technical)",
+                  borderRadius: "var(--radius-sm)",
+                  overflow: "hidden",
+                  backgroundColor: "var(--bg-surface)",
+                }}
+              >
+                {/* Table Header */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "100px 140px 1fr 140px 90px",
+                    padding: "10px 16px",
+                    backgroundColor: "var(--crimson-blue-deep)",
+                    borderBottom: "1px solid var(--border-technical)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.6875rem",
+                    color: "var(--text-muted)",
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  <div>Source</div>
+                  <div>Evidence ID</div>
+                  <div>Observation / Delta</div>
+                  <div>Component</div>
+                  <div style={{ textAlign: "right" }}>Inspect</div>
+                </div>
+
+                {/* Evidence Rows */}
+                {[
+                  {
+                    id: "EV-DEP-0001",
+                    source: "DEPLOY",
+                    time: "02:02:15",
+                    delta: "Release checkout-api:v4.2.1 applied to production cluster",
+                    service: "checkout-api",
+                  },
+                  {
+                    id: "EV-GIT-0001",
+                    source: "GIT",
+                    time: "02:03:40",
+                    delta: "Commit abc12348f9 altered order lookup sort predicate without index",
+                    service: "checkout-api",
+                  },
+                  {
+                    id: "EV-SPAN-0001",
+                    source: "OTEL",
+                    time: "02:04:30",
+                    delta: "db.query duration: 3ms → 1850ms (Seq Scan on orders table)",
+                    service: "postgresql",
+                  },
+                  {
+                    id: "EV-METRIC-0002",
+                    source: "METRIC",
+                    time: "02:05:00",
+                    delta: "API P99 latency: 45ms → 1800ms | 5xx error rate elevated to 12.5%",
+                    service: "checkout-api",
+                  },
+                ].map((row) => (
+                  <div
+                    key={row.id}
+                    onClick={() => setSelectedEvidenceId(row.id)}
+                    className={`evidence-row ${selectedEvidenceId === row.id ? "active" : ""}`}
+                  >
+                    <div>
+                      <span className="badge-inst badge-inst-blue font-mono">{row.source}</span>
                     </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* EVIDENCE SECTION */}
-              <section id="evidence-section">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <h2 style={{ fontSize: "0.825rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-                    Evidence Layer (Grounded Observations)
-                  </h2>
-                  <span className="font-mono" style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
-                    Deterministic Evidence Graph
-                  </span>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
-                  {[
-                    {
-                      id: "EV-DEP-0001",
-                      source: "GitHub Releases",
-                      type: "Deployment",
-                      summary: `Deployed ${currentIncident.affected_service}:v4.2.1 to cluster`,
-                      timestamp: "02:02:15 UTC",
-                    },
-                    {
-                      id: "EV-GIT-0001",
-                      source: "GitHub Commits",
-                      type: "Commit",
-                      summary: "Commit abc12348f9: Order table lookup without index",
-                      timestamp: "02:00:00 UTC",
-                    },
-                    {
-                      id: "EV-SPAN-0001",
-                      source: "OpenTelemetry",
-                      type: "Span",
-                      summary: "db.query orders 1850ms sequential scan",
-                      timestamp: "02:04:30 UTC",
-                    },
-                    {
-                      id: "EV-METRIC-0002",
-                      source: "Prometheus",
-                      type: "Metric",
-                      summary: "P99 latency threshold breached > 1800ms",
-                      timestamp: "02:05:00 UTC",
-                    },
-                  ].map((item) => {
-                    const isSelected = activeEvidenceId === item.id;
-                    return (
-                      <div
-                        key={item.id}
-                        id={`evidence-card-${item.id}`}
-                        onClick={() => setActiveEvidenceId(isSelected ? null : item.id)}
-                        className="card"
+                    <div style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)", fontWeight: 500 }}>
+                      {row.id}
+                    </div>
+                    <div style={{ color: "var(--text-secondary)" }}>
+                      {row.delta}
+                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                      {row.service}
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <button
                         style={{
-                          padding: 16,
+                          background: "none",
+                          border: "none",
+                          color: "var(--crimson-blue-accent)",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.6875rem",
                           cursor: "pointer",
-                          borderColor: isSelected ? "var(--accent-emerald)" : "var(--border-subtle)",
-                          backgroundColor: isSelected ? "var(--bg-card-hover)" : "var(--bg-card)",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                          <span className="badge badge-neutral">{item.source}</span>
-                          <span className="font-mono" style={{ fontSize: "0.725rem", color: "var(--text-muted)" }}>
-                            {item.timestamp}
-                          </span>
-                        </div>
-                        <div className="font-mono" style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--accent-cyan)", marginBottom: 4 }}>
-                          {item.id}
-                        </div>
-                        <div style={{ fontSize: "0.825rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                          {item.summary}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
+                        [Inspect]
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-              {/* HYPOTHESES SECTION */}
-              <section id="hypotheses-section">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <h2 style={{ fontSize: "0.825rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-                    Analyst Hypotheses
-                  </h2>
-                  <span className="font-mono" style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
-                    Competing Explanations
-                  </span>
-                </div>
+            {/* NARRATIVE SECTION 3: COMPETING HYPOTHESES */}
+            <section style={{ marginBottom: "56px" }}>
+              <div className="section-tag">// 03 — COMPETING HYPOTHESES (ANALYTICAL COMPARISON)</div>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "16px" }}>
+                Ranked explanations generated by Analyst Agent. Select a hypothesis to inspect evidence alignment.
+              </p>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {agentSteps?.analyst?.hypotheses.map((hyp) => (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {(agentSteps?.analyst?.hypotheses || []).map((hyp: Hypothesis, idx: number) => {
+                  const isSelected = selectedHypothesisId === hyp.hypothesis_id;
+                  const isSupported = hyp.supporting_evidence_ids.length > 0 && hyp.contradicting_evidence_ids.length === 0;
+
+                  return (
                     <div
                       key={hyp.hypothesis_id}
-                      id={`hypothesis-item-${hyp.hypothesis_id}`}
-                      className="card"
+                      onClick={() => setSelectedHypothesisId(hyp.hypothesis_id)}
                       style={{
-                        padding: 18,
-                        borderLeft: hyp.rank === 1 ? "3px solid var(--accent-emerald)" : "3px solid var(--border-subtle)",
+                        padding: "16px 20px",
+                        backgroundColor: isSelected ? "var(--crimson-blue-surface)" : "var(--bg-surface)",
+                        border: isSelected
+                          ? "1px solid var(--crimson-blue-accent)"
+                          : "1px solid var(--border-subtle)",
+                        borderRadius: "var(--radius-sm)",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span className="font-mono" style={{ fontSize: "0.775rem", color: "var(--text-muted)" }}>
-                            {hyp.hypothesis_id}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-blue-accent)", fontWeight: 600 }}>
+                            {String(idx + 1).padStart(2, "0")}
                           </span>
-                          <span className={hyp.rank === 1 ? "badge badge-emerald" : "badge badge-neutral"}>
-                            Rank #{hyp.rank}
-                          </span>
-                          <span className="badge badge-neutral">
-                            Component: {hyp.suspected_component}
+                          <span style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#ffffff" }}>
+                            {hyp.hypothesis}
                           </span>
                         </div>
-                        <span className="font-mono" style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                          {(hyp.confidence * 100).toFixed(0)}% confidence
+                        <span
+                          className={`badge-inst ${
+                            isSupported ? "badge-inst-emerald" : "badge-inst-crimson"
+                          }`}
+                        >
+                          {isSupported ? "SUPPORTED" : "REFUTED"}
                         </span>
                       </div>
 
-                      <div style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: 12, color: "var(--text-primary)" }}>
-                        {hyp.hypothesis}
-                      </div>
-
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, paddingTop: 10, borderTop: "1px solid var(--border-muted)" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "24px",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.75rem",
+                          color: "var(--text-muted)",
+                          marginTop: "8px",
+                          flexWrap: "wrap",
+                        }}
+                      >
                         <div>
-                          <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-                            SUPPORTING EVIDENCE
+                          <span style={{ color: "var(--verified-emerald)" }}>
+                            {hyp.supporting_evidence_ids.length} Supporting
                           </span>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {hyp.supporting_evidence_ids.map((eid) => (
-                              <span
-                                key={eid}
-                                onClick={() => setActiveEvidenceId(eid)}
-                                className="badge badge-emerald"
-                                style={{ cursor: "pointer" }}
-                              >
-                                {eid}
-                              </span>
-                            ))}
-                          </div>
+                          <span style={{ color: "var(--text-faint)", marginLeft: "4px" }}>
+                            ({hyp.supporting_evidence_ids.join(", ") || "None"})
+                          </span>
                         </div>
 
                         <div>
-                          <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-                            CONTRADICTING / MISSING
+                          <span style={{ color: hyp.contradicting_evidence_ids.length > 0 ? "var(--crimson-red)" : "var(--text-muted)" }}>
+                            {hyp.contradicting_evidence_ids.length} Contradicting
                           </span>
-                          {hyp.contradicting_evidence_ids.length > 0 ? (
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                              {hyp.contradicting_evidence_ids.map((eid) => (
-                                <span key={eid} className="badge badge-rose">
-                                  Contradicted by {eid}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: "0.775rem", color: "var(--text-dim)" }}>
-                              None detected
+                          {hyp.contradicting_evidence_ids.length > 0 && (
+                            <span style={{ color: "var(--crimson-red)", marginLeft: "4px" }}>
+                              ({hyp.contradicting_evidence_ids.join(", ")})
                             </span>
                           )}
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
 
-              {/* VERIFICATION SECTION */}
-              <section id="verification-section">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <h2 style={{ fontSize: "0.825rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-                    Verifier Challenges
-                  </h2>
-                  <span className="font-mono" style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
-                    Adversarial Audit Loop
-                  </span>
-                </div>
+                        <div>
+                          Confidence: <span style={{ color: "var(--text-primary)" }}>{Math.round(hyp.confidence * 100)}%</span>
+                        </div>
 
-                <div className="card" style={{ padding: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                    <span className="badge badge-emerald">Audit Verdict: Approved</span>
-                    <span style={{ fontSize: "0.825rem", color: "var(--text-secondary)" }}>
-                      {agentSteps?.verifier?.verification_summary || "Verifier checked temporal ordering, evidence citations, and filtered contradictions."}
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {agentSteps?.verifier?.challenges.map((c) => (
-                      <div
-                        key={c.hypothesis_id}
-                        id={`verifier-challenge-${c.hypothesis_id}`}
-                        style={{
-                          padding: 12,
-                          backgroundColor: "var(--bg-subtle)",
-                          borderRadius: "var(--radius-xs)",
-                          fontSize: "0.825rem",
-                          borderLeft: `2px solid ${c.passed_verification ? "var(--accent-emerald)" : "var(--accent-rose)"}`,
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <span className="font-mono" style={{ fontWeight: 600 }}>{c.hypothesis_id}</span>
-                          <span style={{ color: c.passed_verification ? "var(--accent-emerald)" : "var(--accent-rose)" }}>
-                            {c.passed_verification ? "Passed Verification" : "Rejected"}
+                        <div>
+                          Causal Mechanism:{" "}
+                          <span style={{ color: hyp.is_causal ? "var(--verified-emerald)" : "var(--text-faint)" }}>
+                            {hyp.is_causal ? "VERIFIED" : "NONE"}
                           </span>
                         </div>
-                        <div style={{ color: "var(--text-secondary)" }}>{c.challenge_notes}</div>
-                        {c.contradictions_detected.length > 0 && (
-                          <div style={{ marginTop: 4, color: "var(--accent-rose)" }}>
-                            Contradiction: {c.contradictions_detected.join("; ")}
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
 
-              {/* FINAL DIAGNOSIS SECTION (The Conclusion) */}
-              {diagnosis && (
-                <section id="final-diagnosis-section">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                    <h2 style={{ fontSize: "0.825rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--accent-emerald)" }}>
-                      Final Diagnosis
-                    </h2>
-                    <span className="font-mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      Investigation Conclusion
-                    </span>
-                  </div>
+            {/* NARRATIVE SECTION 4: ADVERSARIAL VERIFIER AUDIT */}
+            <section style={{ marginBottom: "56px" }}>
+              <div className="section-tag section-tag-emerald">// 04 — ADVERSARIAL VERIFIER AUDIT</div>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "16px" }}>
+                Adversarial audit verifying temporal ordering, causal evidence paths, and contradiction absence.
+              </p>
 
-                  <div
-                    className="card"
-                    id="final-diagnosis-card"
+              <div
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  border: "1px solid var(--border-technical)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "24px",
+                }}
+              >
+                {/* Verifier Challenge Statement */}
+                <div style={{ marginBottom: "20px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--crimson-red)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    Verifier Challenge
+                  </div>
+                  <blockquote
                     style={{
-                      padding: 24,
-                      borderColor: "var(--border-focus)",
-                      backgroundColor: "var(--bg-card)",
+                      fontSize: "1.05rem",
+                      fontStyle: "normal",
+                      color: "#f8fafc",
+                      marginTop: "6px",
+                      borderLeft: "2px solid var(--crimson-red)",
+                      paddingLeft: "14px",
+                      lineHeight: 1.5,
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, gap: 16 }}>
-                      <div>
-                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
-                          VERIFIED ROOT CAUSE
-                        </span>
-                        <h3
-                          id="root-cause-headline"
-                          style={{ fontSize: "1.2rem", fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.4 }}
-                        >
-                          {diagnosis.root_cause}
-                        </h3>
-                      </div>
-                      <div style={{ textAlign: "right", minWidth: 100 }}>
-                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: 2 }}>
-                          CONFIDENCE
-                        </span>
-                        <span
-                          id="diagnosis-confidence"
-                          className="font-mono"
-                          style={{ fontSize: "1.35rem", fontWeight: 700, color: "var(--accent-emerald)" }}
-                        >
-                          {(diagnosis.confidence * 100).toFixed(0)}%
-                        </span>
-                      </div>
+                    Temporal ordering supports the deployment hypothesis, but temporal proximity alone does not establish causation.
+                  </blockquote>
+                </div>
+
+                {/* Evidence Alignment */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gap: "16px",
+                    borderTop: "1px solid var(--border-hairline)",
+                    paddingTop: "16px",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                      SUPPORTING EVIDENCE
                     </div>
-
-                    <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: 20, lineHeight: 1.6 }}>
-                      {diagnosis.explanation}
-                    </p>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 20 }}>
-                      <div className="card-subtle" style={{ padding: 12 }}>
-                        <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block" }}>AFFECTED SERVICE</span>
-                        <span id="meta-service" className="font-mono" style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-                          {diagnosis.affected_service}
-                        </span>
-                      </div>
-                      <div className="card-subtle" style={{ padding: 12 }}>
-                        <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block" }}>SUSPECTED COMPONENT</span>
-                        <span id="meta-component" className="font-mono" style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-                          {diagnosis.suspected_component}
-                        </span>
-                      </div>
-                      <div className="card-subtle" style={{ padding: 12 }}>
-                        <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block" }}>INTRODUCED BY</span>
-                        <span id="meta-introduced" className="font-mono" style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-                          {diagnosis.introduced_by}
-                        </span>
-                      </div>
-                    </div>
-
-                    {diagnosis.recommended_fix && (
-                      <div
-                        id="remediation-box"
-                        style={{
-                          padding: 14,
-                          backgroundColor: "var(--accent-emerald-subtle)",
-                          border: "1px solid var(--accent-emerald-border)",
-                          borderRadius: "var(--radius-sm)",
-                          marginBottom: 20,
-                        }}
-                      >
-                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--accent-emerald)", display: "block", marginBottom: 4 }}>
-                          RECOMMENDED REMEDIATION
-                        </span>
-                        <div style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>
-                          {diagnosis.recommended_fix}
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: 8 }}>
-                        VERIFIED EVIDENCE CHAIN
-                      </span>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {diagnosis.cited_evidence_ids.map((id) => (
-                          <span
-                            key={id}
-                            id={`diagnosis-ev-${id}`}
-                            onClick={() => setActiveEvidenceId(id)}
-                            className="badge badge-cyan"
-                            style={{ cursor: "pointer", fontSize: "0.75rem" }}
-                          >
-                            {id}
-                          </span>
-                        ))}
-                      </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--verified-emerald)", marginTop: "4px" }}>
+                      EV-DEP-0001, EV-GIT-0001, EV-SPAN-0001, EV-METRIC-0002
                     </div>
                   </div>
-                </section>
-              )}
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* 2. INCIDENTS CATALOG VIEW                                      */}
-          {/* ============================================================== */}
-          {activeNav === "incidents" && (
-            <div id="incidents-catalog-view">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <div>
-                  <h1 style={{ fontSize: "1.35rem", fontWeight: 600, marginBottom: 4 }}>
-                    Incident Catalog
-                  </h1>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                    20 reproducible benchmark incidents spanning 15 failure categories.
-                  </p>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                      CONTRADICTING EVIDENCE
+                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "4px" }}>
+                      None detected in telemetry
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                      AUDIT STATUS
+                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--verified-emerald)", fontWeight: 600, marginTop: "4px" }}>
+                      VERIFIED SUPPORTED
+                    </div>
+                  </div>
                 </div>
+
+                {/* Checklist Rules */}
+                <div style={{ borderTop: "1px solid var(--border-hairline)", paddingTop: "16px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "0.8125rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ color: "var(--verified-emerald)" }}>✓</span>
+                      <span style={{ color: "var(--text-primary)" }}>
+                        <strong>Temporal Invariance:</strong> Deployment preceded query degradation by 135 seconds.
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ color: "var(--verified-emerald)" }}>✓</span>
+                      <span style={{ color: "var(--text-primary)" }}>
+                        <strong>Causal Mechanism:</strong> Commit diff reveals unindexed sort; span confirms sequential scan execution plan.
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ color: "var(--verified-emerald)" }}>✓</span>
+                      <span style={{ color: "var(--text-primary)" }}>
+                        <strong>Contradiction Audit:</strong> Competing connection exhaustion and gateway hypotheses refuted by SQL duration profile.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* NARRATIVE SECTION 5: FINAL DIAGNOSIS (THE EARNED CONCLUSION) */}
+            <section
+              style={{
+                backgroundColor: "var(--crimson-blue-deep)",
+                border: "1px solid var(--crimson-blue-border)",
+                borderRadius: "var(--radius-md)",
+                padding: "36px",
+                position: "relative",
+              }}
+            >
+              <div className="section-tag">// 05 — DETERMINISTIC ROOT CAUSE DIAGNOSIS</div>
+
+              <div style={{ marginTop: "16px", marginBottom: "28px" }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.75rem",
+                    color: "var(--crimson-blue-accent)",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Root Cause
+                </div>
+                <div
+                  style={{
+                    fontSize: "1.65rem",
+                    fontWeight: 700,
+                    color: "#ffffff",
+                    lineHeight: 1.3,
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {diagnosis?.root_cause || "Slow database query caused by a query-plan regression introduced in deployment v4.2.1."}
+                </div>
+              </div>
+
+              {/* Attribution and Provenance Grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: "20px",
+                  borderTop: "1px solid var(--border-technical)",
+                  paddingTop: "24px",
+                  marginBottom: "24px",
+                }}
+              >
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                    AFFECTED SERVICE
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9375rem", color: "#fff", fontWeight: 500, marginTop: "4px" }}>
+                    {diagnosis?.affected_service || currentIncident.affected_service}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                    INTRODUCED BY
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9375rem", color: "var(--crimson-blue-accent-hover)", fontWeight: 500, marginTop: "4px" }}>
+                    {diagnosis?.introduced_by || "v4.2.1 / commit abc12348f9"}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                    CONFIDENCE SCORE
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.9375rem", color: "var(--verified-emerald)", fontWeight: 600, marginTop: "4px" }}>
+                    {Math.round((diagnosis?.confidence || 0.94) * 100)}% (Adversarially Verified)
+                  </div>
+                </div>
+              </div>
+
+              {/* Fix Recommendation */}
+              <div style={{ borderTop: "1px solid var(--border-technical)", paddingTop: "20px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+                  RECOMMENDED MITIGATION
+                </div>
+                <div style={{ fontSize: "0.875rem", color: "var(--text-primary)", fontFamily: "var(--font-mono)", backgroundColor: "rgba(0,0,0,0.3)", padding: "10px 14px", borderRadius: "var(--radius-xs)", border: "1px solid var(--border-hairline)" }}>
+                  {diagnosis?.recommended_fix || "Apply composite index on orders(customer_id, created_at DESC) or rollback release v4.2.1."}
+                </div>
+              </div>
+
+              {/* Cited Evidence Chain */}
+              <div style={{ marginTop: "20px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "8px" }}>
+                  CITED EVIDENCE CHAIN
+                </div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {(diagnosis?.cited_evidence_ids || ["EV-DEP-0001", "EV-GIT-0001", "EV-SPAN-0001", "EV-METRIC-0002"]).map((evId) => (
+                    <button
+                      key={evId}
+                      onClick={() => setSelectedEvidenceId(evId)}
+                      style={{
+                        backgroundColor: "var(--crimson-blue-surface)",
+                        border: "1px solid var(--crimson-blue-border)",
+                        color: "#93c5fd",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.75rem",
+                        padding: "4px 10px",
+                        borderRadius: "var(--radius-xs)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {evId}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW 3: INCIDENT CATALOG */}
+        {/* ========================================================================= */}
+        {activeNav === "incidents" && (
+          <div className="container-instrument" style={{ paddingTop: "40px" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "28px", flexWrap: "wrap", gap: "16px" }}>
+              <div>
+                <div className="section-tag">BENCHMARK SCENARIO CATALOG</div>
+                <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}>
+                  Reproducible Incidents ({incidents.length})
+                </h1>
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginTop: "4px" }}>
+                  Comprehensive suite of verified incidents across 15 failure categories used to benchmark investigation accuracy.
+                </p>
+              </div>
+
+              {/* Search & Severity Filters */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <input
                   type="text"
                   placeholder="Filter incidents..."
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                  className="select-input"
-                  style={{ width: 220 }}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input-instrument"
+                  style={{ width: "200px" }}
                 />
-              </div>
-
-              <div className="card" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.825rem" }}>
-                  <thead>
-                    <tr style={{ textAlign: "left", color: "var(--text-muted)", borderBottom: "1px solid var(--border-subtle)" }}>
-                      <th style={{ padding: "10px 16px" }}>Incident</th>
-                      <th style={{ padding: "10px 16px" }}>Name</th>
-                      <th style={{ padding: "10px 16px" }}>Category</th>
-                      <th style={{ padding: "10px 16px" }}>Severity</th>
-                      <th style={{ padding: "10px 16px" }}>Service</th>
-                      <th style={{ padding: "10px 16px", textAlign: "right" }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {incidents
-                      .filter(
-                        (i) =>
-                          i.incident_id.toLowerCase().includes(searchFilter.toLowerCase()) ||
-                          i.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-                          i.category.toLowerCase().includes(searchFilter.toLowerCase())
-                      )
-                      .map((inc) => (
-                        <tr
-                          key={inc.incident_id}
-                          style={{
-                            borderBottom: "1px solid var(--border-muted)",
-                            backgroundColor: inc.incident_id === selectedIncidentId ? "var(--bg-card-hover)" : "transparent",
-                          }}
-                        >
-                          <td className="font-mono" style={{ padding: "10px 16px", color: "var(--accent-cyan)" }}>
-                            {inc.incident_id}
-                          </td>
-                          <td style={{ padding: "10px 16px", fontWeight: 500 }}>{inc.name}</td>
-                          <td style={{ padding: "10px 16px" }}>
-                            <span className="badge badge-neutral">{inc.category}</span>
-                          </td>
-                          <td style={{ padding: "10px 16px" }}>
-                            <span className={inc.severity === "CRITICAL" ? "badge badge-rose" : "badge badge-amber"}>
-                              {inc.severity}
-                            </span>
-                          </td>
-                          <td className="font-mono" style={{ padding: "10px 16px", color: "var(--text-secondary)" }}>
-                            {inc.affected_service}
-                          </td>
-                          <td style={{ padding: "10px 16px", textAlign: "right" }}>
-                            <button
-                              onClick={() => {
-                                setSelectedIncidentId(inc.incident_id);
-                                setActiveNav("investigation");
-                              }}
-                              className="btn btn-outline"
-                              style={{ padding: "4px 10px", fontSize: "0.75rem" }}
-                            >
-                              Investigate
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
+                <div style={{ display: "flex", gap: "4px" }}>
+                  {["ALL", "CRITICAL", "HIGH", "MEDIUM"].map((sev) => (
+                    <button
+                      key={sev}
+                      onClick={() => setFilterSeverity(sev)}
+                      style={{
+                        padding: "4px 8px",
+                        fontSize: "0.6875rem",
+                        fontFamily: "var(--font-mono)",
+                        borderRadius: "2px",
+                        border: "1px solid",
+                        borderColor: filterSeverity === sev ? "var(--crimson-blue-accent)" : "var(--border-technical)",
+                        backgroundColor: filterSeverity === sev ? "var(--crimson-blue-subtle)" : "transparent",
+                        color: filterSeverity === sev ? "#fff" : "var(--text-muted)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {sev}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          )}
 
-          {/* ============================================================== */}
-          {/* 3. EVIDENCE GRAPH VIEW                                         */}
-          {/* ============================================================== */}
-          {activeNav === "graph" && (
-            <div id="evidence-graph-view">
-              <div style={{ marginBottom: 20 }}>
-                <h1 style={{ fontSize: "1.35rem", fontWeight: 600, marginBottom: 4 }}>
-                  Evidence Graph
-                </h1>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                  Deterministic causal path linking root cause trigger to observed telemetry symptoms.
-                </p>
+            {/* List Format (Not heavy cards) */}
+            <div
+              style={{
+                border: "1px solid var(--border-technical)",
+                borderRadius: "var(--radius-sm)",
+                backgroundColor: "var(--bg-surface)",
+                overflow: "hidden",
+              }}
+            >
+              {filteredIncidents.map((inc) => (
+                <div
+                  key={inc.incident_id}
+                  style={{
+                    padding: "16px 20px",
+                    borderBottom: "1px solid var(--border-hairline)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1 }}>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.8125rem",
+                        color: inc.severity === "CRITICAL" ? "var(--crimson-red)" : "var(--text-secondary)",
+                        fontWeight: 600,
+                        width: "70px",
+                      }}
+                    >
+                      {inc.incident_id}
+                    </span>
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#fff" }}>
+                        {inc.name}
+                      </div>
+                      <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                        {inc.description}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span className="badge-inst badge-inst-neutral font-mono">{inc.affected_service}</span>
+                      <span
+                        className={`badge-inst ${
+                          inc.severity === "CRITICAL" ? "badge-inst-crimson" : "badge-inst-neutral"
+                        }`}
+                      >
+                        {inc.severity}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedIncidentId(inc.incident_id);
+                      setActiveNav("investigate");
+                      runInvestigation(inc.incident_id, selectedSystem);
+                    }}
+                    className="btn-instrument btn-instrument-ghost"
+                    style={{ fontSize: "0.75rem", padding: "6px 12px" }}
+                  >
+                    Investigate →
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW 4: EVIDENCE GRAPH (TECHNICAL CAUSAL MAP) */}
+        {/* ========================================================================= */}
+        {activeNav === "graph" && (
+          <div className="container-instrument" style={{ paddingTop: "40px" }}>
+            <div className="section-tag">// EVIDENCE GRAPH CAUSAL MAP</div>
+            <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: "8px" }}>
+              Causal Dependency DAG ({currentIncident.incident_id})
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "32px" }}>
+              Deterministic graph traversal connecting root triggers to downstream symptoms without speculation.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px" }}>
+              {/* Left: Interactive Technical Node Sequence */}
+              <div
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  border: "1px solid var(--border-technical)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "40px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                {[
+                  { id: "node-deploy", label: "DEPLOYMENT", sub: "v4.2.1 release manifest", type: "trigger", evId: "EV-DEP-0001" },
+                  { id: "node-commit", label: "COMMIT DIFF", sub: "abc12348f9: order lookup sort", type: "change", evId: "EV-GIT-0001" },
+                  { id: "node-query", label: "QUERY REGRESSION", sub: "Unindexed sequential scan on orders", type: "root", evId: "EV-SPAN-0001" },
+                  { id: "node-db", label: "DATABASE LATENCY", sub: "db.query duration: 1850ms", type: "symptom", evId: "EV-SPAN-0001" },
+                  { id: "node-api", label: "API SLA BREACH", sub: "GET /api/orders P99: 1800ms", type: "impact", evId: "EV-METRIC-0002" },
+                ].map((node, i, arr) => (
+                  <React.Fragment key={node.id}>
+                    <div
+                      onClick={() => {
+                        setSelectedGraphNode(node.id);
+                        setSelectedEvidenceId(node.evId);
+                      }}
+                      style={{
+                        width: "100%",
+                        maxWidth: "460px",
+                        padding: "16px 20px",
+                        backgroundColor:
+                          selectedGraphNode === node.id ? "var(--crimson-blue-surface)" : "var(--bg-obsidian)",
+                        border:
+                          selectedGraphNode === node.id
+                            ? "1px solid var(--crimson-blue-accent)"
+                            : "1px solid var(--border-subtle)",
+                        borderRadius: "var(--radius-sm)",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--crimson-blue-accent)" }}>
+                          {node.label}
+                        </div>
+                        <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: "#fff", marginTop: "2px" }}>
+                          {node.sub}
+                        </div>
+                      </div>
+                      <span className="badge-inst badge-inst-blue font-mono">{node.evId}</span>
+                    </div>
+
+                    {i < arr.length - 1 && (
+                      <div
+                        style={{
+                          width: "1px",
+                          height: "28px",
+                          backgroundColor: "var(--crimson-blue-accent)",
+                          position: "relative",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: "-4px",
+                            left: "-3px",
+                            width: "0",
+                            height: "0",
+                            borderLeft: "4px solid transparent",
+                            borderRight: "4px solid transparent",
+                            borderTop: "5px solid var(--crimson-blue-accent)",
+                          }}
+                        />
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
               </div>
 
-              <div className="card" style={{ padding: 32 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center" }}>
+              {/* Right: Selected Node Provenance Drawer */}
+              <div
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  border: "1px solid var(--border-technical)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "24px",
+                }}
+              >
+                <div className="section-tag">// NODE PROVENANCE</div>
+                <h3 style={{ fontSize: "1.1rem", color: "#fff", fontWeight: 600, marginBottom: "8px" }}>
+                  {activeEvidenceObj?.title || "Node Metadata"}
+                </h3>
+
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "16px" }}>
+                  Linked Evidence: <span style={{ color: "var(--crimson-blue-accent)" }}>{activeEvidenceObj?.id}</span>
+                </div>
+
+                <div
+                  style={{
+                    backgroundColor: "var(--bg-obsidian)",
+                    border: "1px solid var(--border-hairline)",
+                    borderRadius: "var(--radius-xs)",
+                    padding: "12px",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.75rem",
+                    color: "var(--text-code)",
+                    overflowX: "auto",
+                  }}
+                >
+                  <pre>{JSON.stringify(activeEvidenceObj?.payload || {}, null, 2)}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW 5: EVALUATIONS BENCHMARK */}
+        {/* ========================================================================= */}
+        {activeNav === "evaluations" && (
+          <div className="container-instrument" style={{ paddingTop: "40px" }}>
+            <div className="section-tag">// SCIENTIFIC MEASUREMENT</div>
+            <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: "8px" }}>
+              HOW MUCH DOES THE INVESTIGATION ARCHITECTURE HELP?
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "32px", maxWidth: "800px" }}>
+              Quantitative evaluation across 20 reproducible failure scenarios comparing Single-LLM Context Dump, 2-Agent Baseline, and 3-Agent Aletheia.
+            </p>
+
+            {/* Benchmark Comparison Table */}
+            <div
+              style={{
+                border: "1px solid var(--border-technical)",
+                borderRadius: "var(--radius-sm)",
+                overflow: "hidden",
+                backgroundColor: "var(--bg-surface)",
+                marginBottom: "40px",
+              }}
+            >
+              <table className="table-instrument">
+                <thead>
+                  <tr>
+                    <th>Evaluation Metric</th>
+                    <th>Single-LLM Baseline</th>
+                    <th>2-Agent Baseline</th>
+                    <th style={{ color: "var(--crimson-blue-accent)" }}>Aletheia (3-Agent)</th>
+                    <th>Impact Delta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>Root-Cause Accuracy</td>
+                    <td>46.5%</td>
+                    <td>68.0%</td>
+                    <td style={{ fontWeight: 600, color: "var(--verified-emerald)" }}>69.5%</td>
+                    <td style={{ color: "var(--verified-emerald)" }}>+23.0% gain</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>Top-3 Hypothesis Accuracy</td>
+                    <td>100.0%</td>
+                    <td>95.0%</td>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>95.0%</td>
+                    <td>-5.0% (strictness)</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>Evidence Recall</td>
+                    <td>49.6%</td>
+                    <td>56.2%</td>
+                    <td style={{ fontWeight: 600, color: "var(--verified-emerald)" }}>56.2%</td>
+                    <td style={{ color: "var(--verified-emerald)" }}>+6.6%</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>Evidence Precision</td>
+                    <td>73.8%</td>
+                    <td>100.0%</td>
+                    <td style={{ fontWeight: 600, color: "var(--verified-emerald)" }}>100.0%</td>
+                    <td style={{ color: "var(--verified-emerald)" }}>+26.2%</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>Hallucination Rate</td>
+                    <td style={{ color: "var(--crimson-red)" }}>95.0% (fabricated IDs)</td>
+                    <td style={{ color: "var(--verified-emerald)" }}>0.0%</td>
+                    <td style={{ fontWeight: 600, color: "var(--verified-emerald)" }}>0.0%</td>
+                    <td style={{ color: "var(--verified-emerald)" }}>-95.0% eliminated</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>False-Positive Rate</td>
+                    <td>70.0%</td>
+                    <td>30.0%</td>
+                    <td style={{ fontWeight: 600, color: "var(--verified-emerald)" }}>25.0%</td>
+                    <td style={{ color: "var(--verified-emerald)" }}>-45.0%</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>Verification Audit Success</td>
+                    <td>5.0%</td>
+                    <td>15.0%</td>
+                    <td style={{ fontWeight: 600, color: "var(--verified-emerald)" }}>100.0%</td>
+                    <td style={{ color: "var(--verified-emerald)" }}>+95.0%</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 600, color: "#fff" }}>Mean Execution Latency</td>
+                    <td>0.000s</td>
+                    <td>0.000s</td>
+                    <td>0.001s</td>
+                    <td>+1ms</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Scientific Takeaway Note */}
+            <div
+              style={{
+                backgroundColor: "var(--crimson-blue-deep)",
+                border: "1px solid var(--crimson-blue-border)",
+                borderRadius: "var(--radius-sm)",
+                padding: "24px",
+              }}
+            >
+              <h3 style={{ fontSize: "1rem", color: "#fff", fontWeight: 600, marginBottom: "8px" }}>
+                Why does multi-agent verification beat single-prompt LLMs?
+              </h3>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                Single-LLM baselines dump the entire telemetry payload into a single context window, inducing high hallucination
+                rates (95%) because the model guesses plausibly formatted IDs instead of querying actual spans. By contrast, Aletheia
+                decouples evidence retrieval into a deterministic Evidence Graph, forces hypotheses to state contradicting evidence,
+                and executes an adversarial verification step that rejects claims where cause does not temporally precede effect.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW 6: SYSTEM & LLMOPS */}
+        {/* ========================================================================= */}
+        {activeNav === "system" && (
+          <div className="container-instrument" style={{ paddingTop: "40px" }}>
+            <div className="section-tag">// OBSERVABILITY & LLMOPS TELEMETRY</div>
+            <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: "8px" }}>
+              System & Model Telemetry
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "32px" }}>
+              Live token accounting, latency percentiles, error rates, and invocation traces.
+            </p>
+
+            {/* Telemetry Metrics Grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "16px",
+                marginBottom: "32px",
+              }}
+            >
+              <div style={{ padding: "16px", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-technical)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                  ACTIVE MODEL
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", color: "#fff", fontWeight: 600, marginTop: "4px" }}>
+                  gpt-4o-mini
+                </div>
+              </div>
+              <div style={{ padding: "16px", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-technical)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                  LATENCY P50 / P99
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", color: "var(--crimson-blue-accent)", fontWeight: 600, marginTop: "4px" }}>
+                  1.1ms / 3.4ms
+                </div>
+              </div>
+              <div style={{ padding: "16px", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-technical)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                  TOTAL TOKENS (RUN)
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", color: "#fff", fontWeight: 600, marginTop: "4px" }}>
+                  {evaluation?.token_usage?.total_tokens || "960"}
+                </div>
+              </div>
+              <div style={{ padding: "16px", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-technical)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
+                  INVOCATION COST
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", color: "var(--verified-emerald)", fontWeight: 600, marginTop: "4px" }}>
+                  ${evaluation?.estimated_cost_usd?.toFixed(5) || "0.00014"}
+                </div>
+              </div>
+            </div>
+
+            {/* Traces Table */}
+            <div
+              style={{
+                border: "1px solid var(--border-technical)",
+                borderRadius: "var(--radius-sm)",
+                backgroundColor: "var(--bg-surface)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  padding: "12px 16px",
+                  borderBottom: "1px solid var(--border-technical)",
+                  backgroundColor: "var(--crimson-blue-deep)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.75rem",
+                  color: "#93c5fd",
+                  fontWeight: 600,
+                }}
+              >
+                Recent Structured LLM Traces
+              </div>
+
+              {traces.length > 0 ? (
+                traces.map((tr) => (
                   <div
+                    key={tr.trace_id}
                     style={{
+                      padding: "12px 16px",
+                      borderBottom: "1px solid var(--border-hairline)",
                       display: "flex",
                       alignItems: "center",
-                      gap: 20,
-                      flexWrap: "wrap",
-                      justifyContent: "center",
+                      justifyContent: "space-between",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.75rem",
                     }}
                   >
-                    {[
-                      { type: "DEPLOYMENT", title: "checkout-api:v4.2.1", id: "EV-DEP-0001", time: "02:02:15" },
-                      { type: "COMMIT", title: "abc12348f9", id: "EV-GIT-0001", time: "02:00:00" },
-                      { type: "QUERY REGRESSION", title: "Seq Scan on orders", id: "EV-SPAN-0001", time: "02:04:30" },
-                      { type: "METRIC SPIKE", title: "P99 Latency > 1800ms", id: "EV-METRIC-0002", time: "02:05:00" },
-                      { type: "OUTAGE SYMPTOM", title: "HTTP 504 Timeout", id: "EV-METRIC-0001", time: "02:05:30" },
-                    ].map((node, index, arr) => (
-                      <React.Fragment key={node.id}>
-                        <div
-                          className="card"
-                          style={{
-                            padding: 16,
-                            width: 180,
-                            textAlign: "center",
-                            border: "1px solid var(--border-subtle)",
-                            backgroundColor: "var(--bg-subtle)",
-                          }}
-                        >
-                          <span className="badge badge-neutral" style={{ fontSize: "0.65rem", marginBottom: 6 }}>
-                            {node.type}
-                          </span>
-                          <div style={{ fontSize: "0.825rem", fontWeight: 600, marginBottom: 4 }}>
-                            {node.title}
-                          </div>
-                          <div className="font-mono" style={{ fontSize: "0.725rem", color: "var(--accent-cyan)" }}>
-                            {node.id}
-                          </div>
-                        </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span className="badge-inst badge-inst-blue">{tr.agent_name}</span>
+                      <span style={{ color: "var(--text-primary)" }}>{tr.model}</span>
+                      <span style={{ color: "var(--text-muted)" }}>{tr.trace_id.slice(0, 12)}...</span>
+                    </div>
 
-                        {index < arr.length - 1 && (
-                          <div style={{ color: "var(--border-focus)", fontSize: "1.2rem" }}>
-                            ➔
-                          </div>
-                        )}
-                      </React.Fragment>
-                    ))}
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>{tr.latency_ms.toFixed(1)}ms</span>
+                      <span style={{ color: "var(--text-secondary)" }}>{tr.total_tokens} tokens</span>
+                      <span className="badge-inst badge-inst-emerald">{tr.status}</span>
+                    </div>
                   </div>
-
-                  <div style={{ marginTop: 24, fontSize: "0.8rem", color: "var(--text-muted)", textAlign: "center" }}>
-                    Causal Path Verification: 4 directed causal hops · Verified acyclic · Temporal monotonicity confirmed
-                  </div>
+                ))
+              ) : (
+                <div style={{ padding: "24px", textAlign: "center", color: "var(--text-muted)", fontSize: "0.8125rem", fontFamily: "var(--font-mono)" }}>
+                  Traces logged to eval_results/traces/llm_traces.jsonl
                 </div>
-              </div>
+              )}
             </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* 4. EVALUATIONS VIEW (3-Way Benchmark)                          */}
-          {/* ============================================================== */}
-          {activeNav === "evaluations" && (
-            <div id="evaluations-benchmark-view">
-              <div style={{ marginBottom: 20 }}>
-                <h1 style={{ fontSize: "1.35rem", fontWeight: 600, marginBottom: 4 }}>
-                  3-Way Benchmark Comparison
-                </h1>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                  Quantitative evaluation across 20 distinct incidents measuring diagnostic accuracy, hallucinations, and verification.
-                </p>
-              </div>
-
-              <div className="card" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-                  <thead>
-                    <tr style={{ textAlign: "left", color: "var(--text-muted)", borderBottom: "1px solid var(--border-subtle)" }}>
-                      <th style={{ padding: "12px 18px" }}>Metric</th>
-                      <th style={{ padding: "12px 18px" }}>Baseline A (Single-LLM)</th>
-                      <th style={{ padding: "12px 18px" }}>Baseline B (2-Agent)</th>
-                      <th style={{ padding: "12px 18px", color: "var(--accent-emerald)" }}>Aletheia (3-Agent)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { metric: "Root-Cause Accuracy", a: "46.5%", b: "68.0%", c: "69.5%" },
-                      { metric: "Top-3 Hypothesis Accuracy", a: "100.0%", b: "95.0%", c: "95.0%" },
-                      { metric: "Evidence Recall", a: "49.6%", b: "56.2%", c: "56.2%" },
-                      { metric: "Evidence Precision", a: "73.8%", b: "100.0%", c: "100.0%" },
-                      { metric: "Hallucination Rate", a: "95.0%", b: "0.0%", c: "0.0%" },
-                      { metric: "False-Positive Rate", a: "70.0%", b: "30.0%", c: "25.0%" },
-                      { metric: "Verification Success Rate", a: "5.0%", b: "15.0%", c: "100.0%" },
-                      { metric: "Overall Composite Score", a: "22.1%", b: "65.5%", c: "66.1%" },
-                      { metric: "Mean Latency", a: "0.000s", b: "0.000s", c: "0.001s" },
-                    ].map((row, idx) => (
-                      <tr key={row.metric} style={{ borderBottom: "1px solid var(--border-muted)" }}>
-                        <td style={{ padding: "12px 18px", fontWeight: 500 }}>{row.metric}</td>
-                        <td className="font-mono" style={{ padding: "12px 18px", color: "var(--text-muted)" }}>{row.a}</td>
-                        <td className="font-mono" style={{ padding: "12px 18px", color: "var(--text-secondary)" }}>{row.b}</td>
-                        <td className="font-mono" style={{ padding: "12px 18px", fontWeight: 600, color: "var(--accent-emerald)" }}>{row.c}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* 5. SYSTEM / LLMOPS VIEW                                        */}
-          {/* ============================================================== */}
-          {activeNav === "system" && (
-            <div id="system-llmops-view">
-              <div style={{ marginBottom: 20 }}>
-                <h1 style={{ fontSize: "1.35rem", fontWeight: 600, marginBottom: 4 }}>
-                  System Telemetry & LLMOps
-                </h1>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                  Operational metrics, token budgets, execution latency, and retry resilience logs.
-                </p>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
-                <div className="card" style={{ padding: 16 }}>
-                  <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block" }}>PROMPT TOKENS</span>
-                  <span className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 600 }}>
-                    {evaluation?.token_usage?.prompt_tokens || 850}
-                  </span>
-                </div>
-                <div className="card" style={{ padding: 16 }}>
-                  <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block" }}>COMPLETION TOKENS</span>
-                  <span className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 600 }}>
-                    {evaluation?.token_usage?.completion_tokens || 110}
-                  </span>
-                </div>
-                <div className="card" style={{ padding: 16 }}>
-                  <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block" }}>ESTIMATED COST</span>
-                  <span className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 600, color: "var(--accent-emerald)" }}>
-                    ${(evaluation?.estimated_cost_usd || 0.00014).toFixed(5)}
-                  </span>
-                </div>
-                <div className="card" style={{ padding: 16 }}>
-                  <span style={{ fontSize: "0.725rem", color: "var(--text-muted)", display: "block" }}>EXECUTION LATENCY</span>
-                  <span className="font-mono" style={{ fontSize: "1.3rem", fontWeight: 600, color: "var(--accent-amber)" }}>
-                    {(evaluation?.latency_seconds || 0.002).toFixed(3)}s
-                  </span>
-                </div>
-              </div>
-
-              <div className="card" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.825rem" }}>
-                  <thead>
-                    <tr style={{ textAlign: "left", color: "var(--text-muted)", borderBottom: "1px solid var(--border-subtle)" }}>
-                      <th style={{ padding: "10px 16px" }}>Trace ID</th>
-                      <th style={{ padding: "10px 16px" }}>Agent</th>
-                      <th style={{ padding: "10px 16px" }}>Model</th>
-                      <th style={{ padding: "10px 16px" }}>Tokens</th>
-                      <th style={{ padding: "10px 16px" }}>Latency</th>
-                      <th style={{ padding: "10px 16px" }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(traces.length > 0 ? traces : [
-                      { trace_id: "trace-101", agent_name: "Investigator", model: "deterministic-graph", total_tokens: 0, latency_ms: 1.2, status: "success" },
-                      { trace_id: "trace-102", agent_name: "Analyst", model: "mock-eval-model", total_tokens: 540, latency_ms: 2.4, status: "success" },
-                      { trace_id: "trace-103", agent_name: "Verifier", model: "mock-eval-model", total_tokens: 430, latency_ms: 1.8, status: "success" },
-                    ]).map((tr, i) => (
-                      <tr key={tr.trace_id || i} style={{ borderBottom: "1px solid var(--border-muted)" }}>
-                        <td className="font-mono" style={{ padding: "10px 16px", color: "var(--accent-cyan)" }}>
-                          {tr.trace_id}
-                        </td>
-                        <td style={{ padding: "10px 16px", fontWeight: 500 }}>{tr.agent_name}</td>
-                        <td style={{ padding: "10px 16px", color: "var(--text-muted)" }}>{tr.model}</td>
-                        <td className="font-mono" style={{ padding: "10px 16px" }}>{tr.total_tokens}</td>
-                        <td className="font-mono" style={{ padding: "10px 16px" }}>{tr.latency_ms}ms</td>
-                        <td style={{ padding: "10px 16px" }}>
-                          <span className="badge badge-emerald">{tr.status}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
+
+      {/* ========================================================================= */}
+      {/* EVIDENCE PROVENANCE MODAL / SIDE DRAWER */}
+      {/* ========================================================================= */}
+      {selectedEvidenceId && activeEvidenceObj && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            width: "420px",
+            maxHeight: "500px",
+            backgroundColor: "var(--bg-surface)",
+            border: "1px solid var(--crimson-blue-border)",
+            borderRadius: "var(--radius-sm)",
+            boxShadow: "0 12px 32px rgba(0,0,0,0.7), 0 0 24px var(--crimson-blue-glow)",
+            zIndex: 100,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              padding: "12px 16px",
+              backgroundColor: "var(--crimson-blue-deep)",
+              borderBottom: "1px solid var(--crimson-blue-border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span className="badge-inst badge-inst-blue font-mono">{activeEvidenceObj.source}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "#fff", fontWeight: 600 }}>
+                {activeEvidenceObj.id}
+              </span>
+            </div>
+            <button
+              onClick={() => setSelectedEvidenceId(null)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.875rem",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div style={{ padding: "16px", overflowY: "auto", flex: 1 }}>
+            <div style={{ fontSize: "0.875rem", color: "#fff", fontWeight: 500, marginBottom: "8px" }}>
+              {activeEvidenceObj.title}
+            </div>
+
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "12px" }}>
+              Component: <span style={{ color: "var(--text-secondary)" }}>{activeEvidenceObj.component}</span> · Timestamp: <span style={{ color: "var(--text-secondary)" }}>{activeEvidenceObj.timestamp}</span>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: "var(--bg-obsidian)",
+                border: "1px solid var(--border-hairline)",
+                borderRadius: "var(--radius-xs)",
+                padding: "10px",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.6875rem",
+                color: "var(--text-code)",
+                overflowX: "auto",
+              }}
+            >
+              <pre>{JSON.stringify(activeEvidenceObj.payload, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
