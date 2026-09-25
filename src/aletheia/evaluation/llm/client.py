@@ -141,12 +141,31 @@ class MockLLMClient(BaseLLMClient):
         latency = time.perf_counter() - start_time
         prompt_tokens = max(10, len(prompt.split()))
         completion_tokens = max(10, len(content.split()))
+        total_tokens = prompt_tokens + completion_tokens
+
+        try:
+            import uuid
+            from aletheia.reliability.traces import LLMCallTrace, get_trace_recorder
+            get_trace_recorder().record_trace(
+                LLMCallTrace(
+                    trace_id=f"trace-mock-{uuid.uuid4().hex[:8]}",
+                    agent_name="MockLLMClient",
+                    model=self.model_name,
+                    latency_ms=round(latency * 1000, 2),
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    total_tokens=total_tokens,
+                    status="success",
+                )
+            )
+        except Exception:
+            pass
 
         return LLMCompletionResponse(
             content=content,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            total_tokens=prompt_tokens + completion_tokens,
+            total_tokens=total_tokens,
             latency_seconds=round(latency, 4),
             model=self.model_name,
         )
@@ -217,29 +236,88 @@ class OpenAILLMClient(BaseLLMClient):
 
         url = f"{self.base_url}/chat/completions"
         start_time = time.perf_counter()
+        retries_tracker = {"count": 0}
+
+        def _do_post():
+            try:
+                with httpx.Client(timeout=self.timeout, transport=self.transport) as client:
+                    resp = client.post(url, headers=headers, json=payload)
+                    resp.raise_for_status()
+                    return resp.json()
+            except httpx.TimeoutException as exc:
+                raise LLMTimeoutError(f"LLM API request timed out after {self.timeout}s: {exc}") from exc
+            except httpx.HTTPStatusError as exc:
+                raise LLMAPIError(f"LLM API HTTP error {exc.response.status_code}: {exc.response.text}") from exc
+            except (httpx.RequestError, json.JSONDecodeError, KeyError) as exc:
+                raise LLMAPIError(f"LLM API request/parsing error: {exc}") from exc
+
+        def _on_retry(attempt, exc, backoff):
+            retries_tracker["count"] = attempt
+
+        import uuid
+        trace_id = f"trace-openai-{uuid.uuid4().hex[:8]}"
 
         try:
-            with httpx.Client(timeout=self.timeout, transport=self.transport) as client:
-                resp = client.post(url, headers=headers, json=payload)
-                resp.raise_for_status()
-                data = resp.json()
-        except httpx.TimeoutException as exc:
-            raise LLMTimeoutError(f"LLM API request timed out after {self.timeout}s: {exc}") from exc
-        except httpx.HTTPStatusError as exc:
-            raise LLMAPIError(f"LLM API HTTP error {exc.response.status_code}: {exc.response.text}") from exc
-        except (httpx.RequestError, json.JSONDecodeError, KeyError) as exc:
-            raise LLMAPIError(f"LLM API request/parsing error: {exc}") from exc
+            from aletheia.reliability.resilience import execute_with_retry
+            data = execute_with_retry(
+                _do_post,
+                max_retries=3,
+                initial_backoff=0.05,
+                retry_hook=_on_retry,
+            )
+        except Exception as exc:
+            lat_ms = (time.perf_counter() - start_time) * 1000
+            try:
+                from aletheia.reliability.traces import LLMCallTrace, get_trace_recorder
+                get_trace_recorder().record_trace(
+                    LLMCallTrace(
+                        trace_id=trace_id,
+                        agent_name="OpenAILLMClient",
+                        model=self.model,
+                        latency_ms=round(lat_ms, 2),
+                        status="error",
+                        retries_attempted=retries_tracker["count"],
+                        error_message=str(exc),
+                    )
+                )
+            except Exception:
+                pass
+            raise
 
         latency = time.perf_counter() - start_time
         choice = data["choices"][0]
         content = choice["message"]["content"]
         usage = data.get("usage", {})
+        prompt_tokens = usage.get("prompt_tokens", len(prompt.split()))
+        completion_tokens = usage.get("completion_tokens", len(content.split()))
+        total_tokens = usage.get("total_tokens", prompt_tokens + completion_tokens)
+        rates = {"gpt-4o-mini": (0.15, 0.60), "gpt-4o": (2.50, 10.00)}.get(self.model, (0.15, 0.60))
+        cost = round((prompt_tokens / 1_000_000 * rates[0]) + (completion_tokens / 1_000_000 * rates[1]), 6)
+
+        try:
+            from aletheia.reliability.traces import LLMCallTrace, get_trace_recorder
+            get_trace_recorder().record_trace(
+                LLMCallTrace(
+                    trace_id=trace_id,
+                    agent_name="OpenAILLMClient",
+                    model=data.get("model", self.model),
+                    latency_ms=round(latency * 1000, 2),
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    total_tokens=total_tokens,
+                    estimated_cost_usd=cost,
+                    status="retried" if retries_tracker["count"] > 0 else "success",
+                    retries_attempted=retries_tracker["count"],
+                )
+            )
+        except Exception:
+            pass
 
         return LLMCompletionResponse(
             content=content,
-            prompt_tokens=usage.get("prompt_tokens", len(prompt.split())),
-            completion_tokens=usage.get("completion_tokens", len(content.split())),
-            total_tokens=usage.get("total_tokens", len(prompt.split()) + len(content.split())),
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
             latency_seconds=round(latency, 4),
             model=data.get("model", self.model),
         )

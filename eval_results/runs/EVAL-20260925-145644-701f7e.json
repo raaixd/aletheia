@@ -1,0 +1,118 @@
+{
+  "report_id": "EVAL-20260925-145644-701f7e",
+  "incident_id": "INC-004",
+  "system_name": "Baseline-B (2-Agent)",
+  "timestamp": "2026-09-25T14:56:44.755062Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "cause_tokens:database,column",
+        "mechanism_identified"
+      ],
+      "ground_truth_cause": "missing_database_column",
+      "regression_type": "code_ahead_of_migration"
+    },
+    "explanation": "Correctly identified root cause (cause_tokens:database,column, mechanism_identified)"
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "commit:bad00411",
+        "version:v4.2.3"
+      ],
+      "ground_truth_commit": "bad00411cd",
+      "ground_truth_version": "v4.2.3"
+    },
+    "explanation": "Accurately attributed to commit:bad00411, version:v4.2.3"
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "service:checkout-api",
+        "component:postgresql_schema"
+      ],
+      "expected_service": "checkout-api",
+      "expected_component": "postgresql_schema"
+    },
+    "explanation": "Identified service:checkout-api, component:postgresql_schema"
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 0.5,
+    "passed": false,
+    "details": {
+      "matched_expected": [
+        "deployment_v4.2.3",
+        "commit_bad004"
+      ],
+      "missing_expected": [
+        "undefined_column_error",
+        "http_500_spike"
+      ],
+      "total_expected": 4
+    },
+    "explanation": "Uncovered 2/4 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "relevant_count": 2,
+      "total_cited": 2
+    },
+    "explanation": "2/2 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "hallucinated_ids": [],
+      "count": 0
+    },
+    "explanation": "No hallucinated evidence IDs cited."
+  },
+  "overall_score": 0.9,
+  "latency_seconds": 0.0002,
+  "token_usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "estimated_cost_usd": 0.0,
+  "diagnosis": {
+    "incident_id": "INC-004",
+    "root_cause": "Database schema mismatch due to code deployed ahead of database column migration.",
+    "root_cause_category": "slow_database_query",
+    "suspected_component": "postgresql_schema",
+    "introduced_by": "deployment v4.2.3 (commit bad00411cd)",
+    "affected_service": "checkout-api",
+    "explanation": "Analyst top hypothesis HYP-001: Database schema mismatch due to code deployed ahead of database column migration. (Unverified by Verifier; contradictions not challenged).",
+    "cited_evidence_ids": [
+      "EV-DEP-0001",
+      "EV-GIT-0001"
+    ],
+    "confidence": 0.95,
+    "recommended_fix": "Inspect affected components and test resolution.",
+    "raw_response": null,
+    "usage_metadata": {
+      "latency_seconds": 0.0002,
+      "agent_pipeline": [
+        "Investigator",
+        "Analyst"
+      ],
+      "total_hypotheses_generated": 3
+    }
+  },
+  "summary": "Evaluated 'Baseline-B (2-Agent)' on INC-004: Overall Score: 90.0% | Root Cause: 100.0% | Attribution: 100.0% | Evidence Recall: 50.0% | Hallucinations: 0"
+}

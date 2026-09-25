@@ -1,0 +1,117 @@
+{
+  "report_id": "EVAL-20260925-145553-e08df3",
+  "incident_id": "INC-005",
+  "system_name": "Baseline-A (Single-LLM)",
+  "timestamp": "2026-09-25T14:55:53.686177Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 0.4,
+    "passed": false,
+    "details": {
+      "matches": [
+        "query_latency_mentioned"
+      ],
+      "ground_truth_cause": "pool_size_misconfiguration",
+      "regression_type": "pool_size_throttled"
+    },
+    "explanation": "Partially or incorrectly identified root cause (score: 40.0%)"
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "matches": [],
+      "ground_truth_commit": "cfg00522ee",
+      "ground_truth_version": ""
+    },
+    "explanation": "Incomplete or incorrect attribution (score: 0.0%)"
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "service:checkout-api",
+        "component:database_connection_pool"
+      ],
+      "expected_service": "checkout-api",
+      "expected_component": "database_connection_pool"
+    },
+    "explanation": "Identified service:checkout-api, component:database_connection_pool"
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 0.667,
+    "passed": true,
+    "details": {
+      "matched_expected": [
+        "pool_timeout_errors",
+        "config_change_pool_size"
+      ],
+      "missing_expected": [
+        "thread_contention"
+      ],
+      "total_expected": 3
+    },
+    "explanation": "Uncovered 2/3 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 0.75,
+    "passed": true,
+    "details": {
+      "relevant_count": 3,
+      "total_cited": 4
+    },
+    "explanation": "3/4 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 0.5,
+    "passed": false,
+    "details": {
+      "hallucinated_ids": [
+        "EV-METRIC-0002"
+      ],
+      "count": 1
+    },
+    "explanation": "Cited 1 nonexistent evidence IDs: ['EV-METRIC-0002']"
+  },
+  "overall_score": 0.249,
+  "latency_seconds": 0.0003,
+  "token_usage": {
+    "prompt_tokens": 459,
+    "completion_tokens": 103,
+    "total_tokens": 562
+  },
+  "estimated_cost_usd": 0.0,
+  "diagnosis": {
+    "incident_id": "INC-001",
+    "root_cause": "Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1",
+    "root_cause_category": "slow_database_query",
+    "suspected_component": "postgresql",
+    "introduced_by": "commit abc12348f9 (deployment v4.2.1)",
+    "affected_service": "checkout-api",
+    "explanation": "Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.",
+    "cited_evidence_ids": [
+      "EV-DEP-0001",
+      "EV-GIT-0001",
+      "EV-SPAN-0001",
+      "EV-METRIC-0002"
+    ],
+    "confidence": 0.95,
+    "recommended_fix": "Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.",
+    "raw_response": "{\n  \"incident_id\": \"INC-001\",\n  \"root_cause\": \"Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1\",\n  \"root_cause_category\": \"slow_database_query\",\n  \"suspected_component\": \"postgresql\",\n  \"introduced_by\": \"commit abc12348f9 (deployment v4.2.1)\",\n  \"affected_service\": \"checkout-api\",\n  \"explanation\": \"Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.\",\n  \"cited_evidence_ids\": [\n    \"EV-DEP-0001\",\n    \"EV-GIT-0001\",\n    \"EV-SPAN-0001\",\n    \"EV-METRIC-0002\"\n  ],\n  \"confidence\": 0.95,\n  \"recommended_fix\": \"Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.\"\n}",
+    "usage_metadata": {
+      "model": "mock-eval-model",
+      "prompt_tokens": 459,
+      "completion_tokens": 103,
+      "total_tokens": 562,
+      "latency_seconds": 0.0003,
+      "estimated_cost_usd": 0.0
+    }
+  },
+  "summary": "Evaluated 'Baseline-A (Single-LLM)' on INC-005: Overall Score: 24.9% | Root Cause: 40.0% | Attribution: 0.0% | Evidence Recall: 66.7% | Hallucinations: 1"
+}

@@ -6,7 +6,7 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
 
 ---
 
-## Current Status: Phase 7 — Incident Benchmark & Comparative Evaluation Complete
+## Current Status: Phase 8 — Reliability & LLMOps Complete
 
 - **Phase 1 (Foundation)**: Simulated checkout service, PostgreSQL 16, Docker Compose, automated product seeding, synthetic traffic generator.
 - **Phase 2 (Observability)**: Correlated telemetry triad across all services (structured JSON logging, context-aware correlation IDs, Prometheus metrics, OpenTelemetry distributed tracing).
@@ -38,7 +38,12 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
 | **Verification Success** | 5.0% | 15.0% | **100.0%** |
 | **Overall Composite Score** | 22.1% | 65.5% | **66.1%** |
 | **Mean Latency** | **0.000s** | 0.000s | 0.001s |
-  - **Automated Verification**: 100% passing test suite (93/93 tests, 88% coverage).
+- **Phase 8 (Reliability & LLMOps)**:
+  - **Structured LLM Traces**: Thread-safe `TraceRecorder` tracking token accounting, latency percentiles, models, and cost per invocation.
+  - **Exponential Backoff Resilience**: `@retry_with_backoff` handling transient network drops, rate limits (HTTP 429), and API timeouts with jitter.
+  - **Evaluation Run Storage & Comparison Engine**: Automatic persistence to disk (`eval_results/runs/`, `eval_results/benchmarks/`) with pairwise run diffing (`compare_runs`).
+  - **LLMOps API**: `/api/v1/llmops/traces`, `/api/v1/llmops/metrics`, `/api/v1/llmops/runs`, and `/api/v1/llmops/compare`.
+  - **Automated Verification**: 100% passing test suite (98/98 tests, 87% coverage).
 
 ---
 

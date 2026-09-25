@@ -1,0 +1,112 @@
+{
+  "report_id": "EVAL-20260925-145552-daaca9",
+  "incident_id": "INC-001",
+  "system_name": "Baseline-A-Single-LLM (mock:hallucinated)",
+  "timestamp": "2026-09-25T14:55:52.936970Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "penalized_for": "jvm",
+      "ground_truth": "slow_database_query"
+    },
+    "explanation": "Diagnosis incorrectly claimed 'jvm' which is contraindicated for 'slow_database_query'."
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "matches": [
+        "hallucinated_commit"
+      ],
+      "ground_truth_commit": "abc12348f9",
+      "ground_truth_version": "v4.2.1"
+    },
+    "explanation": "Incomplete or incorrect attribution (score: 0.0%)"
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "matches": [],
+      "expected_service": "checkout-api",
+      "expected_component": "postgresql"
+    },
+    "explanation": "Failed to identify service and component."
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "matched_expected": [],
+      "missing_expected": [
+        "deployment_v4.2.1",
+        "commit_abc123",
+        "increased_db_latency",
+        "increased_checkout_latency"
+      ],
+      "total_expected": 4
+    },
+    "explanation": "Uncovered 0/4 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "relevant_count": 0,
+      "total_cited": 2
+    },
+    "explanation": "0/2 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "hallucinated_ids": [
+        "EV-FAKE-9999",
+        "EV-JVM-0001"
+      ],
+      "count": 2
+    },
+    "explanation": "Cited 2 nonexistent evidence IDs: ['EV-FAKE-9999', 'EV-JVM-0001']"
+  },
+  "overall_score": 0.0,
+  "latency_seconds": 0.0001,
+  "token_usage": {
+    "prompt_tokens": 637,
+    "completion_tokens": 68,
+    "total_tokens": 705
+  },
+  "estimated_cost_usd": 0.000136,
+  "diagnosis": {
+    "incident_id": "INC-001",
+    "root_cause": "JVM garbage collection pause and memory leak in the checkout worker thread pool",
+    "root_cause_category": "memory_leak",
+    "suspected_component": "jvm_heap",
+    "introduced_by": "commit 0000deadbeef",
+    "affected_service": "billing-service",
+    "explanation": "A memory leak in the JVM metaspace caused long Stop-the-World GC pauses exceeding 15 seconds, preventing checkout-api from receiving heartbeats.",
+    "cited_evidence_ids": [
+      "EV-FAKE-9999",
+      "EV-JVM-0001"
+    ],
+    "confidence": 0.99,
+    "recommended_fix": "Increase JVM Xmx heap size to 16GB and restart the pod cluster.",
+    "raw_response": "{\n  \"incident_id\": \"INC-001\",\n  \"root_cause\": \"JVM garbage collection pause and memory leak in the checkout worker thread pool\",\n  \"root_cause_category\": \"memory_leak\",\n  \"suspected_component\": \"jvm_heap\",\n  \"introduced_by\": \"commit 0000deadbeef\",\n  \"affected_service\": \"billing-service\",\n  \"explanation\": \"A memory leak in the JVM metaspace caused long Stop-the-World GC pauses exceeding 15 seconds, preventing checkout-api from receiving heartbeats.\",\n  \"cited_evidence_ids\": [\n    \"EV-FAKE-9999\",\n    \"EV-JVM-0001\"\n  ],\n  \"confidence\": 0.99,\n  \"recommended_fix\": \"Increase JVM Xmx heap size to 16GB and restart the pod cluster.\"\n}",
+    "usage_metadata": {
+      "model": "mock-hallucinated",
+      "prompt_tokens": 637,
+      "completion_tokens": 68,
+      "total_tokens": 705,
+      "latency_seconds": 0.0001,
+      "estimated_cost_usd": 0.000136
+    }
+  },
+  "summary": "Evaluated 'Baseline-A-Single-LLM (mock:hallucinated)' on INC-001: Overall Score: 0.0% | Root Cause: 0.0% | Attribution: 0.0% | Evidence Recall: 0.0% | Hallucinations: 2"
+}

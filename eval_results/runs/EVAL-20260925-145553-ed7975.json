@@ -1,0 +1,117 @@
+{
+  "report_id": "EVAL-20260925-145553-ed7975",
+  "incident_id": "INC-002",
+  "system_name": "Baseline-B (2-Agent)",
+  "timestamp": "2026-09-25T14:55:53.691589Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "cause_tokens:process,memory,leak",
+        "mechanism_identified"
+      ],
+      "ground_truth_cause": "process_memory_leak",
+      "regression_type": "unbounded_in_memory_cache"
+    },
+    "explanation": "Correctly identified root cause (cause_tokens:process,memory,leak, mechanism_identified)"
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 0.4,
+    "passed": false,
+    "details": {
+      "matches": [
+        "version:v4.2.2"
+      ],
+      "ground_truth_commit": "mem00288ab",
+      "ground_truth_version": "v4.2.2"
+    },
+    "explanation": "Incomplete or incorrect attribution (score: 40.0%)"
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "service:checkout-api",
+        "component:python_worker"
+      ],
+      "expected_service": "checkout-api",
+      "expected_component": "python_worker"
+    },
+    "explanation": "Identified service:checkout-api, component:python_worker"
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 0.75,
+    "passed": true,
+    "details": {
+      "matched_expected": [
+        "rss_memory_growth",
+        "commit_mem002",
+        "deployment_v4.2.2"
+      ],
+      "missing_expected": [
+        "oom_restart"
+      ],
+      "total_expected": 4
+    },
+    "explanation": "Uncovered 3/4 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "relevant_count": 2,
+      "total_cited": 2
+    },
+    "explanation": "2/2 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "hallucinated_ids": [],
+      "count": 0
+    },
+    "explanation": "No hallucinated evidence IDs cited."
+  },
+  "overall_score": 0.83,
+  "latency_seconds": 0.0002,
+  "token_usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "estimated_cost_usd": 0.0,
+  "diagnosis": {
+    "incident_id": "INC-002",
+    "root_cause": "Process memory leak caused by unbounded in-memory request cache growth resulting in OOM kill.",
+    "root_cause_category": "regression",
+    "suspected_component": "python_worker",
+    "introduced_by": "deployment v4.2.2 (commit 00288ab)",
+    "affected_service": "checkout-api",
+    "explanation": "Analyst top hypothesis HYP-001: Process memory leak caused by unbounded in-memory request cache growth resulting in OOM kill. (Unverified by Verifier; contradictions not challenged).",
+    "cited_evidence_ids": [
+      "EV-DEP-0001",
+      "EV-GIT-0001"
+    ],
+    "confidence": 0.92,
+    "recommended_fix": "Inspect affected components and test resolution.",
+    "raw_response": null,
+    "usage_metadata": {
+      "latency_seconds": 0.0002,
+      "agent_pipeline": [
+        "Investigator",
+        "Analyst"
+      ],
+      "total_hypotheses_generated": 3
+    }
+  },
+  "summary": "Evaluated 'Baseline-B (2-Agent)' on INC-002: Overall Score: 83.0% | Root Cause: 100.0% | Attribution: 40.0% | Evidence Recall: 75.0% | Hallucinations: 0"
+}

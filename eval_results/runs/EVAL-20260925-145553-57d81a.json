@@ -1,0 +1,122 @@
+{
+  "report_id": "EVAL-20260925-145553-57d81a",
+  "incident_id": "INC-005",
+  "system_name": "Aletheia (3-Agent)",
+  "timestamp": "2026-09-25T14:55:53.723120Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "cause_tokens:pool,size,misconfiguration",
+        "mechanism_identified"
+      ],
+      "ground_truth_cause": "pool_size_misconfiguration",
+      "regression_type": "pool_size_throttled"
+    },
+    "explanation": "Correctly identified root cause (cause_tokens:pool,size,misconfiguration, mechanism_identified)"
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "matches": [],
+      "ground_truth_commit": "cfg00522ee",
+      "ground_truth_version": ""
+    },
+    "explanation": "Incomplete or incorrect attribution (score: 0.0%)"
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "service:checkout-api",
+        "component:database_connection_pool"
+      ],
+      "expected_service": "checkout-api",
+      "expected_component": "database_connection_pool"
+    },
+    "explanation": "Identified service:checkout-api, component:database_connection_pool"
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 0.667,
+    "passed": true,
+    "details": {
+      "matched_expected": [
+        "pool_timeout_errors",
+        "config_change_pool_size"
+      ],
+      "missing_expected": [
+        "thread_contention"
+      ],
+      "total_expected": 3
+    },
+    "explanation": "Uncovered 2/3 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "relevant_count": 3,
+      "total_cited": 3
+    },
+    "explanation": "3/3 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "hallucinated_ids": [],
+      "count": 0
+    },
+    "explanation": "No hallucinated evidence IDs cited."
+  },
+  "overall_score": 0.733,
+  "latency_seconds": 0.0032,
+  "token_usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "estimated_cost_usd": 0.0,
+  "diagnosis": {
+    "incident_id": "INC-005",
+    "root_cause": "Database connection pool size misconfiguration throttled connection limit to 1.",
+    "root_cause_category": "slow_database_query",
+    "suspected_component": "database_connection_pool",
+    "introduced_by": "configuration update",
+    "affected_service": "checkout-api",
+    "explanation": "Verified Hypothesis HYP-001: Database connection pool size misconfiguration throttled connection limit to 1. Supported by evidence IDs: ['EV-DEP-0001', 'EV-GIT-0001', 'EV-SPAN-0001']. Passed temporal ordering and causal verification.",
+    "cited_evidence_ids": [
+      "EV-DEP-0001",
+      "EV-GIT-0001",
+      "EV-SPAN-0001"
+    ],
+    "confidence": 0.91,
+    "recommended_fix": "Add database index or rollback suspected release.",
+    "raw_response": null,
+    "usage_metadata": {
+      "latency_seconds": 0.0032,
+      "agent_pipeline": [
+        "Investigator",
+        "Analyst",
+        "Verifier"
+      ],
+      "execution_trace": [
+        "Investigator: inspecting evidence graph and timeline",
+        "Analyst: generating hypotheses and mapping supporting/contradicting evidence",
+        "Verifier: auditing temporal ordering, causal claims, and contradictions",
+        "Verifier verdict: 'verified'"
+      ],
+      "estimated_cost_usd": 0.0
+    }
+  },
+  "summary": "Evaluated 'Aletheia (3-Agent)' on INC-005: Overall Score: 73.3% | Root Cause: 100.0% | Attribution: 0.0% | Evidence Recall: 66.7% | Hallucinations: 0"
+}

@@ -111,6 +111,11 @@ class EvaluationHarness:
         )
 
         self._reports[report_id] = report
+        try:
+            from aletheia.reliability.store import get_evaluation_store
+            get_evaluation_store().save_run(report)
+        except Exception as exc:
+            logger.debug(f"Failed to auto-save run to evaluation store: {exc}")
         return report
 
     def get_report(self, report_id: str) -> Optional[EvaluationReport]:
@@ -215,6 +220,12 @@ class EvaluationHarness:
         bench_file = self.output_dir / f"{bench_id}.json"
         with open(bench_file, "w", encoding="utf-8") as f:
             f.write(bench_report.model_dump_json(indent=2))
+
+        try:
+            from aletheia.reliability.store import get_evaluation_store
+            get_evaluation_store().save_benchmark(bench_report)
+        except Exception as exc:
+            logger.debug(f"Failed to auto-save benchmark to evaluation store: {exc}")
 
         return bench_report
 

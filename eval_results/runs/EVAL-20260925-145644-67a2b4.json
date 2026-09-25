@@ -1,0 +1,126 @@
+{
+  "report_id": "EVAL-20260925-145644-67a2b4",
+  "incident_id": "INC-001",
+  "system_name": "Aletheia-3Agent (mock:accurate)",
+  "timestamp": "2026-09-25T14:56:44.084905Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 0.8,
+    "passed": true,
+    "details": {
+      "matches": [
+        "category_match",
+        "partial_mechanism_match"
+      ],
+      "ground_truth_cause": "slow_database_query",
+      "regression_type": "unindexed_sequential_scan"
+    },
+    "explanation": "Correctly identified root cause (category_match, partial_mechanism_match)"
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "commit:abc12348",
+        "version:v4.2.1"
+      ],
+      "ground_truth_commit": "abc12348f9",
+      "ground_truth_version": "v4.2.1"
+    },
+    "explanation": "Accurately attributed to commit:abc12348, version:v4.2.1"
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "service:checkout-api",
+        "component:postgresql"
+      ],
+      "expected_service": "checkout-api",
+      "expected_component": "postgresql"
+    },
+    "explanation": "Identified service:checkout-api, component:postgresql"
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matched_expected": [
+        "deployment_v4.2.1",
+        "increased_db_latency",
+        "increased_checkout_latency",
+        "commit_abc123"
+      ],
+      "missing_expected": [],
+      "total_expected": 4
+    },
+    "explanation": "Uncovered 4/4 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "relevant_count": 4,
+      "total_cited": 4
+    },
+    "explanation": "4/4 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "hallucinated_ids": [],
+      "count": 0
+    },
+    "explanation": "No hallucinated evidence IDs cited."
+  },
+  "overall_score": 0.93,
+  "latency_seconds": 0.0129,
+  "token_usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "estimated_cost_usd": 0.0,
+  "diagnosis": {
+    "incident_id": "INC-001",
+    "root_cause": "Database query performance regression due to unindexed sort on the orders table causing full table scans.",
+    "root_cause_category": "slow_database_query",
+    "suspected_component": "postgresql",
+    "introduced_by": "deployment v4.2.1 (commit abc12348f9)",
+    "affected_service": "checkout-api",
+    "explanation": "Verified Hypothesis HYP-001: Database query performance regression due to unindexed sort on the orders table causing full table scans. Supported by evidence IDs: ['EV-DEP-0001', 'EV-GIT-0001', 'EV-SPAN-0001', 'EV-METRIC-0002']. Passed temporal ordering and causal verification.",
+    "cited_evidence_ids": [
+      "EV-DEP-0001",
+      "EV-GIT-0001",
+      "EV-SPAN-0001",
+      "EV-METRIC-0002"
+    ],
+    "confidence": 0.9,
+    "recommended_fix": "Add database index or rollback suspected release.",
+    "raw_response": null,
+    "usage_metadata": {
+      "latency_seconds": 0.0129,
+      "agent_pipeline": [
+        "Investigator",
+        "Analyst",
+        "Verifier"
+      ],
+      "execution_trace": [
+        "Investigator: inspecting evidence graph and timeline",
+        "Analyst: generating hypotheses and mapping supporting/contradicting evidence",
+        "Verifier: auditing temporal ordering, causal claims, and contradictions",
+        "Verifier verdict: 'verified'"
+      ],
+      "estimated_cost_usd": 0.0
+    }
+  },
+  "summary": "Evaluated 'Aletheia-3Agent (mock:accurate)' on INC-001: Overall Score: 93.0% | Root Cause: 80.0% | Attribution: 100.0% | Evidence Recall: 100.0% | Hallucinations: 0"
+}

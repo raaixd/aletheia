@@ -1,0 +1,98 @@
+{
+  "report_id": "EVAL-20260925-145553-cc0df1",
+  "incident_id": "INC-001",
+  "system_name": "snooper",
+  "timestamp": "2026-09-25T14:55:53.061545Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "matches": [],
+      "ground_truth_cause": "slow_database_query",
+      "regression_type": "unindexed_sequential_scan"
+    },
+    "explanation": "Partially or incorrectly identified root cause (score: 0.0%)"
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "status": "unattributed"
+    },
+    "explanation": "Diagnosis failed to identify the commit or deployment that introduced the issue."
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 0.6,
+    "passed": true,
+    "details": {
+      "matches": [
+        "service:checkout-api"
+      ],
+      "expected_service": "checkout-api",
+      "expected_component": "postgresql"
+    },
+    "explanation": "Identified service:checkout-api"
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "matched_expected": [],
+      "missing_expected": [
+        "deployment_v4.2.1",
+        "commit_abc123",
+        "increased_db_latency",
+        "increased_checkout_latency"
+      ],
+      "total_expected": 4
+    },
+    "explanation": "Uncovered 0/4 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "relevant_count": 0,
+      "total_cited": 0
+    },
+    "explanation": "0/0 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "hallucinated_ids": [],
+      "count": 0
+    },
+    "explanation": "No hallucinated evidence IDs cited."
+  },
+  "overall_score": 0.09,
+  "latency_seconds": 0.0,
+  "token_usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "estimated_cost_usd": 0.0,
+  "diagnosis": {
+    "incident_id": "INC-001",
+    "root_cause": "Isolation check",
+    "root_cause_category": null,
+    "suspected_component": null,
+    "introduced_by": null,
+    "affected_service": null,
+    "explanation": "No ground truth present in inputs",
+    "cited_evidence_ids": [],
+    "confidence": 1.0,
+    "recommended_fix": "",
+    "raw_response": null,
+    "usage_metadata": {}
+  },
+  "summary": "Evaluated 'snooper' on INC-001: Overall Score: 9.0% | Root Cause: 0.0% | Attribution: 0.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+}

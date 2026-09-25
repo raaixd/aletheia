@@ -1,0 +1,123 @@
+{
+  "report_id": "EVAL-20260925-145644-3099e5",
+  "incident_id": "INC-003",
+  "system_name": "Aletheia (3-Agent)",
+  "timestamp": "2026-09-25T14:56:44.775920Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 0.8,
+    "passed": true,
+    "details": {
+      "matches": [
+        "cause_tokens:third,party,gateway,timeout",
+        "partial_mechanism_match"
+      ],
+      "ground_truth_cause": "third_party_gateway_timeout",
+      "regression_type": "third_party_gateway_degradation"
+    },
+    "explanation": "Correctly identified root cause (cause_tokens:third,party,gateway,timeout, partial_mechanism_match)"
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 0.8,
+    "passed": true,
+    "details": {
+      "matches": [
+        "actor:external_vendor_outage"
+      ],
+      "ground_truth_commit": "",
+      "ground_truth_version": ""
+    },
+    "explanation": "Accurately attributed to actor:external_vendor_outage"
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "service:payment-gateway",
+        "component:external_stripe_mock"
+      ],
+      "expected_service": "payment-gateway",
+      "expected_component": "external_stripe_mock"
+    },
+    "explanation": "Identified service:payment-gateway, component:external_stripe_mock"
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 0.667,
+    "passed": true,
+    "details": {
+      "matched_expected": [
+        "http_504_gateway_timeout",
+        "outbound_http_latency"
+      ],
+      "missing_expected": [
+        "payment_failure_count"
+      ],
+      "total_expected": 3
+    },
+    "explanation": "Uncovered 2/3 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "relevant_count": 2,
+      "total_cited": 2
+    },
+    "explanation": "2/2 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "hallucinated_ids": [],
+      "count": 0
+    },
+    "explanation": "No hallucinated evidence IDs cited."
+  },
+  "overall_score": 0.823,
+  "latency_seconds": 0.0034,
+  "token_usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "estimated_cost_usd": 0.0,
+  "diagnosis": {
+    "incident_id": "INC-003",
+    "root_cause": "Third-party payment gateway timeout causing downstream HTTP 504 SLA breaches on checkout.",
+    "root_cause_category": "regression",
+    "suspected_component": "external_stripe_mock",
+    "introduced_by": "third-party vendor latency spike",
+    "affected_service": "payment-gateway",
+    "explanation": "Verified Hypothesis HYP-001: Third-party payment gateway timeout causing downstream HTTP 504 SLA breaches on checkout. Supported by evidence IDs: ['EV-SPAN-0001', 'EV-METRIC-0002']. Passed temporal ordering and causal verification.",
+    "cited_evidence_ids": [
+      "EV-SPAN-0001",
+      "EV-METRIC-0002"
+    ],
+    "confidence": 0.94,
+    "recommended_fix": "Add database index or rollback suspected release.",
+    "raw_response": null,
+    "usage_metadata": {
+      "latency_seconds": 0.0034,
+      "agent_pipeline": [
+        "Investigator",
+        "Analyst",
+        "Verifier"
+      ],
+      "execution_trace": [
+        "Investigator: inspecting evidence graph and timeline",
+        "Analyst: generating hypotheses and mapping supporting/contradicting evidence",
+        "Verifier: auditing temporal ordering, causal claims, and contradictions",
+        "Verifier verdict: 'verified'"
+      ],
+      "estimated_cost_usd": 0.0
+    }
+  },
+  "summary": "Evaluated 'Aletheia (3-Agent)' on INC-003: Overall Score: 82.3% | Root Cause: 80.0% | Attribution: 80.0% | Evidence Recall: 66.7% | Hallucinations: 0"
+}

@@ -1,0 +1,112 @@
+{
+  "report_id": "EVAL-20260925-145704-d8a6fa",
+  "incident_id": "INC-001",
+  "system_name": "baseline-partial",
+  "timestamp": "2026-09-25T14:57:04.448968Z",
+  "root_cause_score": {
+    "metric_name": "root_cause_accuracy",
+    "score": 0.5,
+    "passed": false,
+    "details": {
+      "matches": [
+        "category_match"
+      ],
+      "ground_truth_cause": "slow_database_query",
+      "regression_type": "unindexed_sequential_scan"
+    },
+    "explanation": "Partially or incorrectly identified root cause (score: 50.0%)"
+  },
+  "introduced_by_score": {
+    "metric_name": "introduced_by_accuracy",
+    "score": 0.0,
+    "passed": false,
+    "details": {
+      "status": "unattributed"
+    },
+    "explanation": "Diagnosis failed to identify the commit or deployment that introduced the issue."
+  },
+  "service_score": {
+    "metric_name": "service_accuracy",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "matches": [
+        "service:checkout-api",
+        "component:postgresql"
+      ],
+      "expected_service": "checkout-api",
+      "expected_component": "postgresql"
+    },
+    "explanation": "Identified service:checkout-api, component:postgresql"
+  },
+  "evidence_recall_score": {
+    "metric_name": "evidence_recall",
+    "score": 0.5,
+    "passed": false,
+    "details": {
+      "matched_expected": [
+        "increased_checkout_latency",
+        "increased_db_latency"
+      ],
+      "missing_expected": [
+        "deployment_v4.2.1",
+        "commit_abc123"
+      ],
+      "total_expected": 4
+    },
+    "explanation": "Uncovered 2/4 expected evidence items."
+  },
+  "evidence_precision_score": {
+    "metric_name": "evidence_precision",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "relevant_count": 2,
+      "total_cited": 2
+    },
+    "explanation": "2/2 cited evidence items were relevant."
+  },
+  "hallucination_score": {
+    "metric_name": "evidence_hallucination",
+    "score": 1.0,
+    "passed": true,
+    "details": {
+      "hallucinated_ids": [],
+      "count": 0
+    },
+    "explanation": "No hallucinated evidence IDs cited."
+  },
+  "overall_score": 0.525,
+  "latency_seconds": 0.0,
+  "token_usage": {
+    "prompt_tokens": 852,
+    "completion_tokens": 74,
+    "total_tokens": 926
+  },
+  "estimated_cost_usd": 0.0,
+  "diagnosis": {
+    "incident_id": "INC-001",
+    "root_cause": "High database query latency on orders table causing checkout API response degradation",
+    "root_cause_category": "slow_database_query",
+    "suspected_component": "postgresql",
+    "introduced_by": "unknown",
+    "affected_service": "checkout-api",
+    "explanation": "Traces and metrics reveal that database query execution latency spiked to 1500ms, which caused downstream latency spikes on the /api/orders endpoint. Cause of the query slowdown is undetermined from the immediate logs.",
+    "cited_evidence_ids": [
+      "EV-SPAN-0001",
+      "EV-METRIC-0002"
+    ],
+    "confidence": 0.7,
+    "recommended_fix": "Investigate database connection pool and query execution plans.",
+    "raw_response": "{\n  \"incident_id\": \"INC-001\",\n  \"root_cause\": \"High database query latency on orders table causing checkout API response degradation\",\n  \"root_cause_category\": \"slow_database_query\",\n  \"suspected_component\": \"postgresql\",\n  \"introduced_by\": \"unknown\",\n  \"affected_service\": \"checkout-api\",\n  \"explanation\": \"Traces and metrics reveal that database query execution latency spiked to 1500ms, which caused downstream latency spikes on the /api/orders endpoint. Cause of the query slowdown is undetermined from the immediate logs.\",\n  \"cited_evidence_ids\": [\n    \"EV-SPAN-0001\",\n    \"EV-METRIC-0002\"\n  ],\n  \"confidence\": 0.7,\n  \"recommended_fix\": \"Investigate database connection pool and query execution plans.\"\n}",
+    "usage_metadata": {
+      "model": "mock-eval-model",
+      "prompt_tokens": 852,
+      "completion_tokens": 74,
+      "total_tokens": 926,
+      "latency_seconds": 0.0,
+      "estimated_cost_usd": 0.0
+    }
+  },
+  "summary": "Evaluated 'baseline-partial' on INC-001: Overall Score: 52.5% | Root Cause: 50.0% | Attribution: 0.0% | Evidence Recall: 50.0% | Hallucinations: 0"
+}
