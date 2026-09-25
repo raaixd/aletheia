@@ -4,25 +4,20 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   ArchiveIcon,
   ArrowLeftIcon,
-  CalendarPlusIcon,
   ClockIcon,
   ListFilterPlusIcon,
   MailCheckIcon,
   MoreHorizontalIcon,
   TagIcon,
-  Trash2Icon,
   CheckCircle2,
-  AlertCircle,
   Activity,
   Layers,
   Search,
   ExternalLink,
   ChevronRight,
   ShieldCheck,
-  Zap,
   BarChart3,
   Server,
-  FileText,
   Copy,
   Check,
   X,
@@ -30,11 +25,11 @@ import {
   Share2,
   RefreshCw,
   GitCommit,
-  Cpu,
-  DollarSign,
+  Radio,
+  Database,
   Download,
   Eye,
-  Sparkles,
+  Command,
 } from "lucide-react";
 
 import { DarkGradientBg } from "@/components/ui/elegant-dark-pattern";
@@ -45,18 +40,16 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SonarGrid } from "@/components/ui/sonar-grid";
+import { CommandInput } from "@/components/ui/command-input";
+import { CommandPalette } from "@/components/ui/command-palette";
+import { TimelineView } from "@/components/ui/timeline-view";
+import { EvidenceDrawer, EvidenceRecord } from "@/components/ui/evidence-drawer";
 
 import { INITIAL_INCIDENTS } from "./data";
-import { SonarGrid } from "@/components/ui/sonar-grid";
-import { AnimatedAIChat } from "@/components/ui/animated-ai-chat";
 import {
   IncidentMetadata,
   DiagnosisResult,
@@ -88,10 +81,10 @@ export default function Home() {
   const [evidenceViewMode, setEvidenceViewMode] = useState<"graph" | "table">("graph");
   const [filterSeverity, setFilterSeverity] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [investigationFilter, setInvestigationFilter] = useState<string>("ALL");
   const [timelineFilter, setTimelineFilter] = useState<string>("ALL");
   const [evidenceCategoryFilter, setEvidenceCategoryFilter] = useState<string>("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
 
   const currentIncident = incidents.find((i) => i.incident_id === selectedIncidentId) || incidents[0];
 
@@ -139,12 +132,25 @@ export default function Home() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 15);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Keyboard shortcut listener for Command Palette (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Fetch real incidents list from backend
   useEffect(() => {
     async function loadIncidents() {
       try {
@@ -162,14 +168,14 @@ export default function Home() {
     loadIncidents();
   }, []);
 
-  // Run Investigation
+  // Run Investigation against backend API
   const runInvestigation = async (incId: string = selectedIncidentId, sys: string = selectedSystem) => {
     setIsLoading(true);
     setRunningStep(1);
 
-    const stepTimer1 = setTimeout(() => setRunningStep(2), 250);
-    const stepTimer2 = setTimeout(() => setRunningStep(3), 500);
-    const stepTimer3 = setTimeout(() => setRunningStep(4), 750);
+    const stepTimer1 = setTimeout(() => setRunningStep(2), 200);
+    const stepTimer2 = setTimeout(() => setRunningStep(3), 400);
+    const stepTimer3 = setTimeout(() => setRunningStep(4), 600);
 
     try {
       const res = await fetch(
@@ -417,15 +423,8 @@ export default function Home() {
     return matchesSev && matchesQuery;
   });
 
-  // Filtered investigations list
-  const filteredInvestigations = incidents.filter((inc) => {
-    if (investigationFilter === "COMPLETED") return inc.incident_id === "INC-001";
-    if (investigationFilter === "CRITICAL") return inc.severity === "CRITICAL";
-    return true;
-  });
-
   // Evidence records dictionary
-  const evidenceRecords: Record<string, { id: string; source: string; timestamp: string; title: string; component: string; payload: Record<string, any>; verified: boolean }> = {
+  const evidenceRecords: Record<string, EvidenceRecord> = {
     "EV-DEP-0001": {
       id: "EV-DEP-0001",
       source: "DEPLOYMENT",
@@ -534,13 +533,6 @@ export default function Home() {
     downloadAnchor.remove();
   };
 
-  // Filtered timeline
-  const filteredTimeline = timelineEvents.filter((evt) => {
-    if (timelineFilter === "ALL") return true;
-    return evt.type.toLowerCase() === timelineFilter.toLowerCase();
-  });
-
-  // Filtered evidence records
   const allEvidenceArray = Object.values(evidenceRecords);
   const filteredEvidence = allEvidenceArray.filter((ev) => {
     if (evidenceCategoryFilter === "ALL") return true;
@@ -549,47 +541,63 @@ export default function Home() {
 
   return (
     <DarkGradientBg>
+      {/* COMMAND PALETTE MODAL (CMD+K / CTRL+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        incidents={incidents}
+        onSelectIncident={(incId) => {
+          setSelectedIncidentId(incId);
+          navigateToTab("investigations", incId);
+          runInvestigation(incId);
+        }}
+        onNavigateTab={(tab) => navigateToTab(tab as NavTab)}
+        onRunDiagnosis={(incId) => runInvestigation(incId)}
+        onExportReport={handleExportJson}
+      />
+
       {/* GLOBAL HEADER */}
       <header
         style={{
           position: "sticky",
           top: 0,
           zIndex: 50,
-          backgroundColor: isScrolled ? "rgba(8, 9, 13, 0.92)" : "rgba(8, 9, 13, 0.75)",
-          backdropFilter: "blur(16px)",
+          backgroundColor: isScrolled ? "rgba(8, 9, 12, 0.94)" : "rgba(8, 9, 12, 0.8)",
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
           borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-          transition: "all 0.2s ease",
+          transition: "all 0.15s ease",
         }}
       >
         <div
           style={{
-            maxWidth: "1400px",
+            maxWidth: "1320px",
             margin: "0 auto",
             padding: "0 24px",
-            height: "56px",
+            height: "52px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
-          {/* Logo Brand */}
+          {/* Logo & Brand Mark */}
           <div
             onClick={() => navigateToTab("overview")}
             style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
           >
             <div
               style={{
-                width: "22px",
-                height: "22px",
-                borderRadius: "4px",
+                width: "20px",
+                height: "20px",
+                borderRadius: "3px",
                 background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 700,
-                fontSize: "12px",
+                fontSize: "11px",
                 color: "#ffffff",
-                boxShadow: "0 0 12px rgba(37, 99, 235, 0.4)",
+                boxShadow: "0 0 10px rgba(37, 99, 235, 0.4)",
               }}
             >
               A
@@ -597,31 +605,18 @@ export default function Home() {
             <span
               style={{
                 fontFamily: "var(--font-mono)",
-                fontWeight: 700,
-                fontSize: "0.9375rem",
-                letterSpacing: "0.14em",
-                color: "#f8fafc",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+                letterSpacing: "0.12em",
+                color: "#ffffff",
               }}
             >
               ALETHEIA
             </span>
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "0.625rem",
-                padding: "2px 6px",
-                borderRadius: "3px",
-                backgroundColor: "rgba(37, 99, 235, 0.12)",
-                color: "#93c5fd",
-                border: "1px solid rgba(37, 99, 235, 0.25)",
-              }}
-            >
-              INSTRUMENT
-            </span>
           </div>
 
           {/* Primary Navigation Tabs */}
-          <nav style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          <nav style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             {(
               [
                 { id: "overview", label: "Overview" },
@@ -638,234 +633,198 @@ export default function Home() {
                   key={tab.id}
                   onClick={() => navigateToTab(tab.id, undefined, tab.id === "investigations" ? true : false)}
                   style={{
-                    background: isActive ? "rgba(255, 255, 255, 0.08)" : "transparent",
-                    border: "none",
+                    background: isActive ? "rgba(255, 255, 255, 0.06)" : "transparent",
+                    border: isActive ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid transparent",
                     borderRadius: "4px",
-                    padding: "6px 12px",
-                    color: isActive ? "#ffffff" : "#94a3b8",
+                    padding: "5px 11px",
+                    color: isActive ? "#ffffff" : "#889096",
                     fontFamily: "var(--font-sans)",
                     fontSize: "0.8125rem",
                     fontWeight: isActive ? 600 : 500,
                     cursor: "pointer",
-                    transition: "all 0.15s ease",
-                    position: "relative",
+                    transition: "all 0.1s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) e.currentTarget.style.color = "#ffffff";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.color = "#94a3b8";
+                    if (!isActive) e.currentTarget.style.color = "#889096";
                   }}
                 >
                   {tab.label}
-                  {isActive && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: "-14px",
-                        left: "12px",
-                        right: "12px",
-                        height: "2px",
-                        backgroundColor: "#3b82f6",
-                        borderRadius: "1px",
-                      }}
-                    />
-                  )}
                 </button>
               );
             })}
           </nav>
 
-          {/* Utility Area with ButtonGroup */}
+          {/* Right Utility: Quick Search Trigger & Status */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <ButtonGroup>
-              <ButtonGroup className="hidden sm:flex">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigateToTab("system")}
-                  style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}
-                >
-                  <span
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      backgroundColor: "#10b981",
-                      display: "inline-block",
-                      boxShadow: "0 0 6px #10b981",
-                    }}
-                  />
-                  SYSTEM OPERATIONAL
-                </Button>
-              </ButtonGroup>
-              <ButtonGroup>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" aria-label="System Menu">
-                      <MoreHorizontalIcon size={14} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuGroup>
-                      <DropdownMenuItem onClick={() => navigateToTab("evaluations")}>
-                        <BarChart3 size={14} /> Run Benchmarks
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigateToTab("system")}>
-                        <Activity size={14} /> Live Telemetry
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuItem onClick={() => window.open("/api/backend/docs", "_blank")}>
-                        <ExternalLink size={14} /> FastAPI Swagger Docs
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleExportJson}>
-                        <Download size={14} /> Export Report
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </ButtonGroup>
-            </ButtonGroup>
+            <button
+              type="button"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px 8px",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "4px",
+                color: "#71717a",
+                fontSize: "0.75rem",
+                fontFamily: "var(--font-sans)",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.18)";
+                e.currentTarget.style.color = "#ffffff";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                e.currentTarget.style.color = "#71717a";
+              }}
+            >
+              <Search size={12} />
+              <span className="hidden sm:inline">Search / Command</span>
+              <kbd
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.625rem",
+                  backgroundColor: "rgba(255, 255, 255, 0.06)",
+                  padding: "1px 4px",
+                  borderRadius: "2px",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  color: "#889096",
+                }}
+              >
+                ⌘K
+              </kbd>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigateToTab("system")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px 6px",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.6875rem",
+                color: "#10b981",
+              }}
+              title="System operational (FastAPI Daemon 200 OK)"
+            >
+              <span
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  backgroundColor: "#10b981",
+                  boxShadow: "0 0 6px #10b981",
+                }}
+              />
+              <span className="hidden md:inline">Operational</span>
+            </button>
           </div>
         </div>
       </header>
 
       {/* MAIN VIEWPORT CONTAINER */}
-      <main style={{ maxWidth: "1400px", margin: "0 auto", padding: "36px 24px 80px 24px" }}>
+      <main style={{ maxWidth: "1320px", margin: "0 auto", padding: "36px 24px 80px 24px" }}>
         {/* ========================================================================= */}
-        {/* 1. OVERVIEW PAGE                                                          */}
+        {/* 1. OVERVIEW PAGE (SIMPLIFIED, EDITORIAL, FOCUSED)                         */}
         {/* ========================================================================= */}
         {activeNav === "overview" && (
           <div>
-            {/* HERO SECTION WITH SONAR BACKGROUND */}
+            {/* HERO WITH SUBTLE DEPTH */}
             <div
               style={{
                 position: "relative",
-                borderRadius: "8px",
-                overflow: "hidden",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                padding: "48px 36px",
-                marginBottom: "40px",
-                backgroundColor: "rgba(10, 14, 22, 0.7)",
+                padding: "48px 0 40px 0",
+                marginBottom: "32px",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
               }}
             >
-              <div style={{ position: "absolute", inset: 0, zIndex: 0, opacity: 0.35 }}>
-                <SonarGrid />
-              </div>
-
-              <div style={{ position: "relative", zIndex: 1, maxWidth: "780px" }}>
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "0.6875rem",
-                    color: "#93c5fd",
-                    letterSpacing: "0.1em",
-                    marginBottom: "10px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
-                  <ShieldCheck size={14} color="#3b82f6" />
-                  EVIDENCE-DRIVEN INCIDENT INVESTIGATION INSTRUMENT
+              <div style={{ maxWidth: "720px" }}>
+                <div className="section-tag">
+                  <ShieldCheck size={13} />
+                  INCIDENT INVESTIGATION INSTRUMENT
                 </div>
                 <h1
                   style={{
-                    fontSize: "2.4rem",
+                    fontSize: "2.5rem",
                     fontWeight: 700,
-                    letterSpacing: "-0.03em",
+                    letterSpacing: "-0.035em",
                     lineHeight: 1.15,
-                    marginBottom: "14px",
+                    marginBottom: "12px",
                     color: "#ffffff",
                   }}
                 >
-                  Find the verifiable truth behind production failures.
+                  Find the truth behind the failure.
                 </h1>
                 <p
                   style={{
                     fontSize: "0.9375rem",
                     color: "var(--text-secondary)",
                     lineHeight: 1.6,
-                    marginBottom: "24px",
-                    maxWidth: "680px",
+                    marginBottom: "28px",
                   }}
                 >
-                  Aletheia transforms messy telemetry into an ordered investigation narrative: reconstructing chronological timelines, isolating evidence DAGs, testing competing hypotheses, and executing adversarial verification audits.
+                  Evidence-driven incident investigation for production systems. Reconstructs what happened, tests competing explanations, and executes adversarial verification audits against active telemetry.
                 </p>
 
-                {/* Command Bar using AnimatedAIChat */}
+                {/* Compact Investigation Command Input */}
                 <div style={{ marginBottom: "20px" }}>
-                  <AnimatedAIChat
+                  <CommandInput
                     incidents={incidents}
                     selectedIncidentId={selectedIncidentId}
-                    onSelectAndDiagnose={(incId: string) => {
+                    onSelectAndDiagnose={(incId) => {
                       navigateToTab("investigations", incId);
-                      runInvestigation(incId, selectedSystem);
+                      runInvestigation(incId);
                     }}
                     isLoading={isLoading}
                   />
                 </div>
-
-                {/* Hero Action Buttons */}
-                <ButtonGroup>
-                  <ButtonGroup>
-                    <Button
-                      variant="default"
-                      onClick={() => {
-                        navigateToTab("investigations", "INC-001");
-                        runInvestigation("INC-001", selectedSystem);
-                      }}
-                    >
-                      <Play size={13} fill="#ffffff" /> Investigate Active Incident (INC-001)
-                    </Button>
-                    <Button variant="outline" onClick={() => navigateToTab("incidents")}>
-                      <ListFilterPlusIcon size={14} /> Catalog (21 Scenarios)
-                    </Button>
-                  </ButtonGroup>
-                  <ButtonGroup>
-                    <Button variant="outline" onClick={() => navigateToTab("evaluations")}>
-                      <BarChart3 size={14} /> Benchmark Accuracy
-                    </Button>
-                  </ButtonGroup>
-                </ButtonGroup>
               </div>
             </div>
 
-            {/* SECTION: RECENT INCIDENTS READY FOR INVESTIGATION (LISTED DOWN PROPERLY) */}
-            <div style={{ marginBottom: "44px" }}>
+            {/* RECENT INVESTIGATIONS (CLEAN, SCANNABLE TABLE) */}
+            <div style={{ marginBottom: "48px" }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  marginBottom: "16px",
+                  alignItems: "baseline",
+                  marginBottom: "14px",
                 }}
               >
                 <div>
-                  <div className="section-tag">
-                    <Activity size={12} /> ACTIVE WORKSPACE
-                  </div>
-                  <h2 style={{ fontSize: "1.25rem", fontWeight: 600, color: "#ffffff" }}>
-                    Production Incidents Ready for Investigation
+                  <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff" }}>
+                    Recent Investigations
                   </h2>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                    Production anomalies diagnosed with verified evidence graph citations.
+                  </div>
                 </div>
-                <ButtonGroup>
-                  <Button variant="outline" size="sm" onClick={() => navigateToTab("incidents")}>
-                    View All 21 Incidents <ChevronRight size={13} />
-                  </Button>
-                </ButtonGroup>
+
+                <Button variant="ghost" size="sm" onClick={() => navigateToTab("incidents")}>
+                  Browse 21 Scenarios <ChevronRight size={13} />
+                </Button>
               </div>
 
-              {/* Structured Technical List Container */}
+              {/* Minimalist Table List */}
               <div className="technical-list-container">
                 <div
                   className="technical-list-header"
-                  style={{ gridTemplateColumns: "110px 100px 1fr 140px 100px 160px" }}
+                  style={{ gridTemplateColumns: "100px 90px 1fr 140px 100px 110px" }}
                 >
                   <span>STATUS</span>
-                  <span>INCIDENT</span>
+                  <span>ID</span>
                   <span>ANOMALY & FAILURE SUMMARY</span>
                   <span>SERVICE</span>
                   <span>SEVERITY</span>
@@ -876,7 +835,7 @@ export default function Home() {
                   <div
                     key={inc.incident_id}
                     className="technical-list-row"
-                    style={{ gridTemplateColumns: "110px 100px 1fr 140px 100px 160px" }}
+                    style={{ gridTemplateColumns: "100px 90px 1fr 140px 100px 110px" }}
                   >
                     <div>
                       <span
@@ -886,17 +845,13 @@ export default function Home() {
                           gap: "5px",
                           fontSize: "0.6875rem",
                           fontFamily: "var(--font-mono)",
-                          padding: "2px 6px",
+                          padding: "1px 6px",
                           borderRadius: "3px",
                           backgroundColor:
                             inc.incident_id === "INC-001"
                               ? "rgba(16, 185, 129, 0.12)"
                               : "rgba(245, 158, 11, 0.12)",
                           color: inc.incident_id === "INC-001" ? "#6ee7b7" : "#fde68a",
-                          border:
-                            inc.incident_id === "INC-001"
-                              ? "1px solid rgba(16, 185, 129, 0.25)"
-                              : "1px solid rgba(245, 158, 11, 0.25)",
                         }}
                       >
                         <span
@@ -907,7 +862,7 @@ export default function Home() {
                             backgroundColor: inc.incident_id === "INC-001" ? "#10b981" : "#f59e0b",
                           }}
                         />
-                        {inc.incident_id === "INC-001" ? "VERIFIED" : "ACTIVE"}
+                        {inc.incident_id === "INC-001" ? "VERIFIED" : "READY"}
                       </span>
                     </div>
 
@@ -916,36 +871,16 @@ export default function Home() {
                     </div>
 
                     <div>
-                      <div style={{ fontWeight: 500, color: "#f8fafc", marginBottom: "2px" }}>
+                      <span style={{ fontWeight: 500, color: "#ffffff", marginRight: "8px" }}>
                         {inc.name}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-secondary)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          maxWidth: "480px",
-                        }}
-                      >
+                      </span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                         {inc.description}
-                      </div>
+                      </span>
                     </div>
 
-                    <div>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.75rem",
-                          color: "#93c5fd",
-                          backgroundColor: "rgba(37, 99, 235, 0.08)",
-                          padding: "2px 6px",
-                          borderRadius: "3px",
-                        }}
-                      >
-                        {inc.affected_service}
-                      </span>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd" }}>
+                      {inc.affected_service}
                     </div>
 
                     <div>
@@ -967,114 +902,80 @@ export default function Home() {
                     </div>
 
                     <div style={{ textAlign: "right" }}>
-                      <ButtonGroup>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedIncidentId(inc.incident_id);
-                            navigateToTab("investigations", inc.incident_id);
-                            runInvestigation(inc.incident_id, selectedSystem);
-                          }}
-                        >
-                          Investigate
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon" aria-label="More">
-                              <MoreHorizontalIcon size={12} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedIncidentId(inc.incident_id);
-                                navigateToTab("evidence");
-                              }}
-                            >
-                              <Eye size={13} /> View Telemetry
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => copyToClipboard(inc.incident_id, inc.incident_id)}>
-                              <TagIcon size={13} /> Copy Incident ID
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </ButtonGroup>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedIncidentId(inc.incident_id);
+                          navigateToTab("investigations", inc.incident_id);
+                          runInvestigation(inc.incident_id);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#3b82f6",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.75rem",
+                          cursor: "pointer",
+                          padding: "2px 4px",
+                        }}
+                      >
+                        Inspect →
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* SECTION: 6-STAGE INVESTIGATION PROTOCOL (LISTED DOWN PROPERLY) */}
-            <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "32px" }}>
+            {/* THE 6-STAGE INVESTIGATION PROTOCOL */}
+            <div>
               <div className="section-tag">
-                <Layers size={12} /> INVESTIGATION ARCHITECTURE
+                <Layers size={13} /> INVESTIGATION WORKFLOW
               </div>
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 600, color: "#ffffff", marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "16px" }}>
                 The 6-Stage Investigation Protocol
               </h2>
 
-              <div className="technical-list-container">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "14px",
+                }}
+              >
                 {[
-                  {
-                    num: "01",
-                    stage: "Incident & Anomaly Detection",
-                    desc: "Captures latency breaches, 5xx rate spikes, and deployment triggers with exact boundary timestamps.",
-                  },
-                  {
-                    num: "02",
-                    stage: "Chronological Timeline Reconstruction",
-                    desc: "Aligns deployments, configuration commits, span bursts, and metrics in strict chronological order.",
-                  },
-                  {
-                    num: "03",
-                    stage: "Evidence Graph Isolation (DAG)",
-                    desc: "Maps directional dependency relationships between services, query spans, error rates, and infrastructure.",
-                  },
-                  {
-                    num: "04",
-                    stage: "Competing Hypotheses Generation",
-                    desc: "Analyst agent formulates distinct plausible root causes, separating causal mechanisms from coincidences.",
-                  },
-                  {
-                    num: "05",
-                    stage: "Adversarial Verifier Cross-Examination",
-                    desc: "Challenges temporal precedence, tests telemetry contradictions, and guards against LLM hallucinations.",
-                  },
-                  {
-                    num: "06",
-                    stage: "Verified Diagnosis & Remediation",
-                    desc: "Synthesizes final root cause, isolated commit author, verified confidence score, and remediation steps.",
-                  },
+                  { step: "01", title: "Incident Detection", text: "Ingests alerts, SLO threshold violations, and error spikes." },
+                  { step: "02", title: "Timeline Assembly", text: "Reconstructs exact sequence of commits, deployments, and spans." },
+                  { step: "03", title: "Evidence Graph (DAG)", text: "Traces directional causal relationships across distributed spans." },
+                  { step: "04", title: "Hypotheses Generation", text: "Formulates competing causal root causes with prior confidence." },
+                  { step: "05", title: "Adversarial Verifier", text: "Audits temporal precedence and refutes invalid explanations." },
+                  { step: "06", title: "Verified Diagnosis", text: "Outputs root cause, offending commit, and remediation steps." },
                 ].map((item) => (
-                  <div key={item.num} className="technical-list-row" style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+                  <div
+                    key={item.step}
+                    style={{
+                      padding: "16px 14px",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: "6px",
+                      backgroundColor: "rgba(255, 255, 255, 0.015)",
+                    }}
+                  >
                     <div
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "0.75rem",
+                        fontSize: "0.6875rem",
                         fontWeight: 600,
-                        color: "#93c5fd",
-                        backgroundColor: "rgba(37, 99, 235, 0.12)",
-                        border: "1px solid rgba(37, 99, 235, 0.25)",
-                        width: "28px",
-                        height: "28px",
-                        borderRadius: "4px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
+                        color: "#3b82f6",
+                        marginBottom: "6px",
                       }}
                     >
-                      {item.num}
+                      {item.step}
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: "#f8fafc", marginBottom: "2px" }}>
-                        {item.stage}
-                      </div>
-                      <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                        {item.desc}
-                      </div>
+                    <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "#ffffff", marginBottom: "4px" }}>
+                      {item.title}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: 1.45 }}>
+                      {item.text}
                     </div>
                   </div>
                 ))}
@@ -1084,11 +985,11 @@ export default function Home() {
         )}
 
         {/* ========================================================================= */}
-        {/* 2. INVESTIGATIONS WORKSPACE                                               */}
+        {/* 2. INVESTIGATIONS WORKSPACE (THE MAIN PRODUCT EXPERIENCE)                 */}
         {/* ========================================================================= */}
         {activeNav === "investigations" && (
           <div>
-            {/* Contextual Toolbar & Breadcrumb Bar with ButtonGroup */}
+            {/* Contextual Toolbar & Breadcrumb Bar */}
             <div
               style={{
                 display: "flex",
@@ -1097,12 +998,12 @@ export default function Home() {
                 flexWrap: "wrap",
                 gap: "12px",
                 marginBottom: "20px",
-                paddingBottom: "16px",
+                paddingBottom: "14px",
                 borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
               }}
             >
               {/* Breadcrumb Trail */}
-              <div className="breadcrumb-trail" style={{ margin: 0 }}>
+              <div className="breadcrumb-trail">
                 <button
                   onClick={() => {
                     setViewingSpecificInvestigation(false);
@@ -1117,62 +1018,20 @@ export default function Home() {
                 <span style={{ color: "var(--text-secondary)" }}>{currentIncident.name}</span>
               </div>
 
-              {/* Action ButtonGroups */}
+              {/* Action Buttons */}
               <ButtonGroup>
-                <ButtonGroup>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label="Go Back"
-                    onClick={() => {
-                      setViewingSpecificInvestigation(false);
-                      updateUrl("investigations");
-                    }}
-                  >
-                    <ArrowLeftIcon size={14} />
-                  </Button>
-                </ButtonGroup>
-                <ButtonGroup>
-                  <Button
-                    variant="outline"
-                    onClick={() => runInvestigation(selectedIncidentId, selectedSystem)}
-                    disabled={isLoading}
-                  >
-                    <ClockIcon size={13} className={isLoading ? "spin-animate" : ""} />
-                    {isLoading ? "Investigating..." : "Rerun Investigation"}
-                  </Button>
-                  <Button variant="outline" onClick={handleExportJson}>
-                    <ArchiveIcon size={13} /> Export Report
-                  </Button>
-                </ButtonGroup>
-                <ButtonGroup>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon" aria-label="More Options">
-                        <MoreHorizontalIcon size={14} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-52">
-                      <DropdownMenuGroup>
-                        <DropdownMenuItem onClick={() => copyToClipboard(window.location.href, "link")}>
-                          <Share2 size={13} /> Copy Deep Link
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => copyToClipboard(diagnosis?.root_cause || "", "diag")}>
-                          <Copy size={13} /> Copy Diagnosis Text
-                        </DropdownMenuItem>
-                      </DropdownMenuGroup>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuGroup>
-                        <DropdownMenuItem onClick={() => navigateToTab("evidence")}>
-                          <Eye size={13} /> View Evidence Graph
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigateToTab("evaluations")}>
-                          <BarChart3 size={13} /> Architecture Benchmarks
-                        </DropdownMenuItem>
-                      </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </ButtonGroup>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => runInvestigation(selectedIncidentId, selectedSystem)}
+                  disabled={isLoading}
+                >
+                  <RefreshCw size={13} className={isLoading ? "spin-animate" : ""} />
+                  {isLoading ? "Investigating..." : "Rerun Investigation"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportJson}>
+                  <Download size={13} /> Export Report
+                </Button>
               </ButtonGroup>
             </div>
 
@@ -1223,79 +1082,44 @@ export default function Home() {
             </div>
 
             {/* INVESTIGATION NARRATIVE - STRUCTURED SEQUENTIAL LAYOUT */}
-            <div style={{ maxWidth: "1100px" }}>
-              {/* 1. INCIDENT HEADER (LISTED DOWN PROPERLY) */}
-              <div
-                style={{
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                  backgroundColor: "rgba(14, 18, 27, 0.65)",
-                  borderRadius: "6px",
-                  padding: "20px 24px",
-                  marginBottom: "32px",
-                }}
-              >
+            <div style={{ maxWidth: "1000px" }}>
+              {/* 1. INCIDENT HEADER SUMMARY */}
+              <div style={{ marginBottom: "32px" }}>
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: "16px",
-                    paddingBottom: "16px",
-                    borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-                    marginBottom: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.75rem",
+                    color: "var(--text-muted)",
+                    marginBottom: "6px",
                   }}
                 >
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                      INCIDENT IDENTIFIER
-                    </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "1.1rem", color: "#ffffff" }}>
-                      {currentIncident.incident_id}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                      AFFECTED SERVICE
-                    </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#93c5fd" }}>
-                      {currentIncident.affected_service}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                      SEVERITY LEVEL
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontWeight: 700,
-                        color: currentIncident.severity === "CRITICAL" ? "#fda4af" : "#fde68a",
-                      }}
-                    >
-                      {currentIncident.severity}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                      INVESTIGATION STATUS
-                    </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#6ee7b7" }}>
-                      {isLoading ? "RUNNING..." : "COMPLETE (VERIFIED)"}
-                    </div>
-                  </div>
+                  <span style={{ color: "#93c5fd", fontWeight: 600 }}>{currentIncident.incident_id}</span>
+                  <span>•</span>
+                  <span>{currentIncident.affected_service}</span>
+                  <span>•</span>
+                  <span style={{ color: currentIncident.severity === "CRITICAL" ? "#fda4af" : "#fde68a" }}>
+                    {currentIncident.severity}
+                  </span>
+                  <span>•</span>
+                  <span style={{ color: "#10b981" }}>
+                    {isLoading ? "RUNNING..." : "INVESTIGATION COMPLETE"}
+                  </span>
                 </div>
 
-                <div style={{ fontSize: "1.05rem", fontWeight: 600, color: "#ffffff", marginBottom: "6px" }}>
+                <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#ffffff", marginBottom: "8px" }}>
                   {currentIncident.name}
-                </div>
-                <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                  {currentIncident.description}
-                </div>
+                </h1>
+                <p style={{ fontSize: "0.9375rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                  Checkout request latency increased from 42ms to 1,850ms following deployment v4.2.1 due to missing sort index on orders.
+                </p>
               </div>
 
-              {/* 2. WHAT HAPPENED & INCIDENT SEQUENCE (LISTED DOWN PROPERLY) */}
+              <hr className="hairline-separator" />
+
+              {/* 2. WHAT HAPPENED & PROGRESSION */}
               <div style={{ marginBottom: "36px" }}>
                 <div className="section-tag">
                   <Activity size={12} /> 01. WHAT HAPPENED
@@ -1304,7 +1128,7 @@ export default function Home() {
                   Failure Progression & Impact Summary
                 </h3>
 
-                <div className="technical-list-container">
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   {[
                     {
                       num: "01",
@@ -1322,42 +1146,43 @@ export default function Home() {
                       text: "12.5% of checkout requests timed out with HTTP 504 errors on /checkout/place-order; downstream payment-gw encountered cascading timeout failures.",
                     },
                   ].map((item) => (
-                    <div key={item.num} className="technical-list-row" style={{ display: "flex", gap: "16px" }}>
-                      <div
+                    <div
+                      key={item.num}
+                      style={{
+                        display: "flex",
+                        gap: "14px",
+                        alignItems: "flex-start",
+                        padding: "8px 0",
+                      }}
+                    >
+                      <span
                         style={{
                           fontFamily: "var(--font-mono)",
                           fontSize: "0.75rem",
-                          fontWeight: 600,
-                          color: "#93c5fd",
-                          backgroundColor: "rgba(37, 99, 235, 0.1)",
-                          border: "1px solid rgba(37, 99, 235, 0.25)",
-                          width: "24px",
-                          height: "24px",
-                          borderRadius: "4px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
+                          color: "#3b82f6",
+                          paddingTop: "2px",
                         }}
                       >
-                        {item.num}
-                      </div>
+                        {item.num}.
+                      </span>
                       <div>
-                        <div style={{ fontWeight: 600, color: "#f8fafc", marginBottom: "2px" }}>
-                          {item.title}
-                        </div>
-                        <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                        <span style={{ fontWeight: 600, color: "#ffffff", marginRight: "6px" }}>
+                          {item.title}:
+                        </span>
+                        <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
                           {item.text}
-                        </div>
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* 3. CHRONOLOGICAL TIMELINE (LISTED DOWN PROPERLY) */}
+              <hr className="hairline-separator" />
+
+              {/* 3. CHRONOLOGICAL VERTICAL TIMELINE */}
               <div style={{ marginBottom: "36px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
                   <div>
                     <div className="section-tag">
                       <ClockIcon size={12} /> 02. CHRONOLOGICAL TIMELINE
@@ -1367,110 +1192,23 @@ export default function Home() {
                     </h3>
                   </div>
 
-                  <ButtonGroup>
-                    <ButtonGroup>
-                      <Button
-                        variant={timelineFilter === "ALL" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setTimelineFilter("ALL")}
-                      >
-                        All ({timelineEvents.length})
-                      </Button>
-                      <Button
-                        variant={timelineFilter === "deployment" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setTimelineFilter("deployment")}
-                      >
-                        Deployments
-                      </Button>
-                      <Button
-                        variant={timelineFilter === "span" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setTimelineFilter("span")}
-                      >
-                        Spans
-                      </Button>
-                    </ButtonGroup>
-                  </ButtonGroup>
-                </div>
-
-                <div className="technical-list-container">
-                  <div
-                    className="technical-list-header"
-                    style={{ gridTemplateColumns: "130px 110px 1fr 180px" }}
-                  >
-                    <span>TIMESTAMP</span>
-                    <span>TYPE</span>
-                    <span>EVENT SUMMARY</span>
-                    <span style={{ textAlign: "right" }}>EVIDENCE REFERENCE</span>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    {timelineEvents.length} events recorded
                   </div>
-
-                  {filteredTimeline.map((evt) => (
-                    <div
-                      key={evt.event_id}
-                      className="technical-list-row"
-                      style={{ gridTemplateColumns: "130px 110px 1fr 180px" }}
-                    >
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#94a3b8" }}>
-                        {evt.timestamp}
-                      </div>
-
-                      <div>
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "0.6875rem",
-                            textTransform: "uppercase",
-                            padding: "2px 6px",
-                            borderRadius: "3px",
-                            backgroundColor:
-                              evt.type === "deployment"
-                                ? "rgba(16, 185, 129, 0.12)"
-                                : evt.type === "commit"
-                                ? "rgba(99, 102, 241, 0.12)"
-                                : evt.type === "span"
-                                ? "rgba(225, 29, 72, 0.12)"
-                                : "rgba(255, 255, 255, 0.06)",
-                            color:
-                              evt.type === "deployment"
-                                ? "#6ee7b7"
-                                : evt.type === "commit"
-                                ? "#a5b4fc"
-                                : evt.type === "span"
-                                ? "#fda4af"
-                                : "#cbd5e1",
-                          }}
-                        >
-                          {evt.type}
-                        </span>
-                      </div>
-
-                      <div style={{ color: "#f8fafc" }}>{evt.summary}</div>
-
-                      <div style={{ textAlign: "right" }}>
-                        {evt.evidence_ids && evt.evidence_ids.length > 0 && (
-                          <div style={{ display: "inline-flex", gap: "6px" }}>
-                            {evt.evidence_ids.map((evId) => (
-                              <button
-                                key={evId}
-                                className="ev-ref"
-                                onClick={() => setSelectedEvidenceId(evId)}
-                                title="Click to view evidence details"
-                              >
-                                {evId}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
                 </div>
+
+                <TimelineView
+                  events={timelineEvents}
+                  onSelectEvidence={(evId) => setSelectedEvidenceId(evId)}
+                  selectedEvidenceId={selectedEvidenceId}
+                />
               </div>
 
-              {/* 4. EXTRACTED SIGNALS & EVIDENCE (LISTED DOWN PROPERLY) */}
+              <hr className="hairline-separator" />
+
+              {/* 4. EXTRACTED SIGNALS & EVIDENCE */}
               <div style={{ marginBottom: "36px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "12px" }}>
                   <div>
                     <div className="section-tag">
                       <Layers size={12} /> 03. EXTRACTED EVIDENCE
@@ -1480,112 +1218,94 @@ export default function Home() {
                     </h3>
                   </div>
 
-                  <ButtonGroup>
-                    <ButtonGroup>
-                      <Button
-                        variant={evidenceCategoryFilter === "ALL" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setEvidenceCategoryFilter("ALL")}
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    {["ALL", "OPENTELEMETRY", "DEPLOYMENT", "GIT"].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setEvidenceCategoryFilter(cat)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.6875rem",
+                          color: evidenceCategoryFilter === cat ? "#ffffff" : "#71717a",
+                          cursor: "pointer",
+                          padding: "2px 6px",
+                          borderRadius: "3px",
+                          backgroundColor: evidenceCategoryFilter === cat ? "rgba(255, 255, 255, 0.08)" : "transparent",
+                        }}
                       >
-                        All
-                      </Button>
-                      <Button
-                        variant={evidenceCategoryFilter === "OPENTELEMETRY" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setEvidenceCategoryFilter("OPENTELEMETRY")}
-                      >
-                        Spans
-                      </Button>
-                      <Button
-                        variant={evidenceCategoryFilter === "DEPLOYMENT" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setEvidenceCategoryFilter("DEPLOYMENT")}
-                      >
-                        Deployments
-                      </Button>
-                      <Button
-                        variant={evidenceCategoryFilter === "GIT" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setEvidenceCategoryFilter("GIT")}
-                      >
-                        Commits
-                      </Button>
-                    </ButtonGroup>
-                  </ButtonGroup>
+                        {cat === "ALL" ? "All" : cat === "OPENTELEMETRY" ? "Spans" : cat === "DEPLOYMENT" ? "Deployments" : "Commits"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="technical-list-container">
                   <div
                     className="technical-list-header"
-                    style={{ gridTemplateColumns: "120px 130px 110px 1fr 140px" }}
+                    style={{ gridTemplateColumns: "110px 120px 100px 1fr 90px" }}
                   >
                     <span>SOURCE</span>
                     <span>EVIDENCE ID</span>
                     <span>TIME</span>
-                    <span>SIGNAL OBSERVATION & ATTRIBUTES</span>
-                    <span style={{ textAlign: "right" }}>ACTIONS</span>
+                    <span>OBSERVATION & PAYLOAD ATTRIBUTES</span>
+                    <span style={{ textAlign: "right" }}>ACTION</span>
                   </div>
 
                   {filteredEvidence.map((ev) => (
                     <div
                       key={ev.id}
                       className="technical-list-row"
-                      style={{ gridTemplateColumns: "120px 130px 110px 1fr 140px" }}
+                      style={{ gridTemplateColumns: "110px 120px 100px 1fr 90px" }}
                     >
-                      <div>
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "0.6875rem",
-                            padding: "2px 6px",
-                            borderRadius: "3px",
-                            backgroundColor: "rgba(255, 255, 255, 0.05)",
-                            color: "#cbd5e1",
-                          }}
-                        >
-                          {ev.source}
-                        </span>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#889096" }}>
+                        {ev.source}
                       </div>
 
                       <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#93c5fd" }}>
                         {ev.id}
                       </div>
 
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#94a3b8" }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#71717a" }}>
                         {ev.timestamp}
                       </div>
 
-                      <div style={{ color: "#f8fafc" }}>
-                        <div style={{ fontWeight: 500, marginBottom: "2px" }}>{ev.title}</div>
+                      <div>
+                        <div style={{ color: "#ffffff", fontWeight: 500 }}>{ev.title}</div>
                         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
                           Component: {ev.component}
                         </div>
                       </div>
 
                       <div style={{ textAlign: "right" }}>
-                        <ButtonGroup>
-                          <Button variant="outline" size="sm" onClick={() => setSelectedEvidenceId(ev.id)}>
-                            Inspect
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            aria-label="Copy Evidence ID"
-                            onClick={() => copyToClipboard(ev.id, ev.id)}
-                          >
-                            <TagIcon size={12} />
-                          </Button>
-                        </ButtonGroup>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEvidenceId(ev.id)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#3b82f6",
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "0.75rem",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Inspect →
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* 5. COMPETING HYPOTHESES (LISTED DOWN PROPERLY) */}
+              <hr className="hairline-separator" />
+
+              {/* 5. COMPETING HYPOTHESES */}
               <div style={{ marginBottom: "36px" }}>
                 <div className="section-tag">
-                  <Sparkles size={12} /> 04. COMPETING HYPOTHESES
+                  <BarChart3 size={12} /> 04. COMPETING HYPOTHESES
                 </div>
                 <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff", marginBottom: "12px" }}>
                   Analyst Causal Explanations Evaluated
@@ -1594,12 +1314,12 @@ export default function Home() {
                 <div className="technical-list-container">
                   <div
                     className="technical-list-header"
-                    style={{ gridTemplateColumns: "70px 1fr 180px 180px" }}
+                    style={{ gridTemplateColumns: "60px 1fr 160px 140px" }}
                   >
                     <span>RANK</span>
-                    <span>HYPOTHESIS & MECHANISM</span>
-                    <span>POSTERIOR VERDICT</span>
-                    <span style={{ textAlign: "right" }}>CITED EVIDENCE</span>
+                    <span>HYPOTHESIS & PROPOSED MECHANISM</span>
+                    <span>VERDICT & PROBABILITY</span>
+                    <span style={{ textAlign: "right" }}>SUPPORTING PROOF</span>
                   </div>
 
                   {agentSteps?.analyst?.hypotheses.map((hyp) => {
@@ -1609,20 +1329,20 @@ export default function Home() {
                         key={hyp.hypothesis_id}
                         className="technical-list-row"
                         style={{
-                          gridTemplateColumns: "70px 1fr 180px 180px",
-                          backgroundColor: isWinner ? "rgba(16, 185, 129, 0.04)" : "transparent",
+                          gridTemplateColumns: "60px 1fr 160px 140px",
+                          backgroundColor: isWinner ? "rgba(16, 185, 129, 0.03)" : "transparent",
                         }}
                       >
-                        <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: isWinner ? "#10b981" : "#64748b" }}>
+                        <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: isWinner ? "#10b981" : "#52525b" }}>
                           #{hyp.rank}
                         </div>
 
                         <div>
-                          <div style={{ fontWeight: 600, color: "#ffffff", marginBottom: "4px" }}>
+                          <div style={{ fontWeight: 600, color: "#ffffff", marginBottom: "2px" }}>
                             {hyp.hypothesis}
                           </div>
                           <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                            Suspected Trigger: <span style={{ fontFamily: "var(--font-mono)", color: "#93c5fd" }}>{hyp.suspected_trigger}</span>
+                            Trigger: <span style={{ fontFamily: "var(--font-mono)", color: "#93c5fd" }}>{hyp.suspected_trigger}</span>
                           </div>
                         </div>
 
@@ -1632,18 +1352,15 @@ export default function Home() {
                               fontFamily: "var(--font-mono)",
                               fontSize: "0.6875rem",
                               fontWeight: 600,
-                              padding: "3px 8px",
-                              borderRadius: "4px",
+                              padding: "2px 6px",
+                              borderRadius: "3px",
                               backgroundColor: isWinner
-                                ? "rgba(16, 185, 129, 0.15)"
-                                : "rgba(225, 29, 72, 0.12)",
+                                ? "rgba(16, 185, 129, 0.12)"
+                                : "rgba(244, 63, 94, 0.12)",
                               color: isWinner ? "#6ee7b7" : "#fda4af",
-                              border: isWinner
-                                ? "1px solid rgba(16, 185, 129, 0.3)"
-                                : "1px solid rgba(225, 29, 72, 0.3)",
                             }}
                           >
-                            {isWinner ? `VERIFIED (${Math.round(hyp.confidence * 100)}%)` : "CONTRADICTED"}
+                            {isWinner ? `VERIFIED (${Math.round(hyp.confidence * 100)}%)` : "REFUTED"}
                           </span>
                         </div>
 
@@ -1666,7 +1383,9 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 6. VERIFIER CROSS-EXAMINATION (LISTED DOWN PROPERLY) */}
+              <hr className="hairline-separator" />
+
+              {/* 6. ADVERSARIAL VERIFIER AUDITS */}
               <div style={{ marginBottom: "36px" }}>
                 <div className="section-tag">
                   <ShieldCheck size={12} /> 05. ADVERSARIAL VERIFICATION
@@ -1693,19 +1412,18 @@ export default function Home() {
                       desc: "All 4 cited evidence tokens verified against active in-memory OpenTelemetry and Prometheus traces. Zero synthetic state leakage.",
                     },
                   ].map((auditItem, idx) => (
-                    <div key={idx} className="technical-list-row" style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+                    <div key={idx} className="technical-list-row" style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
                       <div
                         style={{
-                          width: "20px",
-                          height: "20px",
+                          width: "18px",
+                          height: "18px",
                           borderRadius: "50%",
                           backgroundColor: "rgba(16, 185, 129, 0.15)",
-                          border: "1px solid rgba(16, 185, 129, 0.3)",
                           color: "#10b981",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          fontSize: "11px",
+                          fontSize: "10px",
                           flexShrink: 0,
                           marginTop: "2px",
                         }}
@@ -1713,15 +1431,15 @@ export default function Home() {
                         ✓
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
                           <span style={{ fontWeight: 600, color: "#ffffff" }}>{auditItem.audit}</span>
                           <span
                             style={{
                               fontFamily: "var(--font-mono)",
                               fontSize: "0.625rem",
                               padding: "1px 5px",
-                              borderRadius: "3px",
-                              backgroundColor: "rgba(16, 185, 129, 0.12)",
+                              borderRadius: "2px",
+                              backgroundColor: "rgba(16, 185, 129, 0.1)",
                               color: "#6ee7b7",
                             }}
                           >
@@ -1737,24 +1455,26 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 7. FINAL VERIFIED DIAGNOSIS (LISTED DOWN PROPERLY) */}
+              <hr className="hairline-separator" />
+
+              {/* 7. FINAL VERIFIED DIAGNOSIS (THE EARNED ENDPOINT) */}
               <div
                 style={{
-                  border: "1px solid rgba(16, 185, 129, 0.3)",
-                  backgroundColor: "rgba(10, 24, 18, 0.45)",
-                  borderRadius: "8px",
-                  padding: "24px 28px",
+                  border: "1px solid rgba(16, 185, 129, 0.25)",
+                  backgroundColor: "rgba(16, 185, 129, 0.03)",
+                  borderRadius: "6px",
+                  padding: "24px 24px",
                   marginBottom: "40px",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "16px" }}>
                   <div>
                     <div
                       style={{
                         fontFamily: "var(--font-mono)",
                         fontSize: "0.6875rem",
-                        color: "#6ee7b7",
-                        letterSpacing: "0.1em",
+                        color: "#10b981",
+                        letterSpacing: "0.08em",
                         marginBottom: "4px",
                         display: "flex",
                         alignItems: "center",
@@ -1763,29 +1483,28 @@ export default function Home() {
                     >
                       <CheckCircle2 size={13} color="#10b981" /> 06. FINAL DIAGNOSIS
                     </div>
-                    <h3 style={{ fontSize: "1.35rem", fontWeight: 700, color: "#ffffff" }}>
+                    <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff" }}>
                       Verified Root Cause & Remediation
                     </h3>
                   </div>
 
                   <ButtonGroup>
-                    <ButtonGroup>
-                      <Button
-                        variant="outline"
-                        onClick={() => copyToClipboard(diagnosis?.root_cause || "", "diag")}
-                      >
-                        <Copy size={13} /> {copiedId === "diag" ? "Copied" : "Copy Diagnosis"}
-                      </Button>
-                      <Button variant="outline" onClick={handleExportJson}>
-                        <Download size={13} /> Export JSON
-                      </Button>
-                    </ButtonGroup>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(diagnosis?.root_cause || "", "diag")}
+                    >
+                      <Copy size={12} /> {copiedId === "diag" ? "Copied" : "Copy"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportJson}>
+                      <Download size={12} /> Export JSON
+                    </Button>
                   </ButtonGroup>
                 </div>
 
-                {/* Structured Findings List */}
-                <div className="technical-list-container" style={{ backgroundColor: "rgba(8, 14, 11, 0.6)", marginBottom: "20px" }}>
-                  <div className="technical-list-row" style={{ gridTemplateColumns: "180px 1fr" }}>
+                {/* Findings Table List */}
+                <div className="technical-list-container" style={{ marginBottom: "18px" }}>
+                  <div className="technical-list-row" style={{ gridTemplateColumns: "160px 1fr" }}>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                       PRIMARY ROOT CAUSE
                     </div>
@@ -1794,41 +1513,41 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="technical-list-row" style={{ gridTemplateColumns: "180px 1fr" }}>
+                  <div className="technical-list-row" style={{ gridTemplateColumns: "160px 1fr" }}>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                       INTRODUCED BY
                     </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "#93c5fd" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "#93c5fd" }}>
                       {diagnosis?.introduced_by || "deployment checkout-api:v4.2.1 (commit abc12348f9)"}
                     </div>
                   </div>
 
-                  <div className="technical-list-row" style={{ gridTemplateColumns: "180px 1fr" }}>
+                  <div className="technical-list-row" style={{ gridTemplateColumns: "160px 1fr" }}>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      VERIFIED CONFIDENCE
+                      CALIBRATED CONFIDENCE
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "1rem", color: "#10b981" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "#10b981" }}>
                         {Math.round((diagnosis?.confidence || 0.94) * 100)}%
                       </span>
                       <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                        Calibrated against 4 verified OpenTelemetry spans and commits.
+                        Confirmed by active telemetry verification graph.
                       </span>
                     </div>
                   </div>
 
-                  <div className="technical-list-row" style={{ gridTemplateColumns: "180px 1fr" }}>
+                  <div className="technical-list-row" style={{ gridTemplateColumns: "160px 1fr" }}>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      RECOMMENDED ACTION
+                      REMEDIATION STEPS
                     </div>
-                    <div style={{ fontSize: "0.875rem", color: "#e2e8f0", lineHeight: 1.5 }}>
+                    <div style={{ fontSize: "0.8125rem", color: "#f4f4f6" }}>
                       {diagnosis?.recommended_fix || "Apply composite index on orders(customer_id, created_at DESC) or rollback release v4.2.1."}
                     </div>
                   </div>
 
-                  <div className="technical-list-row" style={{ gridTemplateColumns: "180px 1fr" }}>
+                  <div className="technical-list-row" style={{ gridTemplateColumns: "160px 1fr" }}>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      SUPPORTING PROOF
+                      CITED PROOF
                     </div>
                     <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                       {(diagnosis?.cited_evidence_ids || ["EV-DEP-0001", "EV-GIT-0001", "EV-SPAN-0001"]).map((evId) => (
@@ -1844,23 +1563,10 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Remediation Action ButtonGroup */}
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <ButtonGroup>
-                    <ButtonGroup>
-                      <Button variant="outline">
-                        <MailCheckIcon size={14} /> Acknowledge Resolution
-                      </Button>
-                      <Button variant="outline">
-                        <TagIcon size={14} /> Tag Postmortem
-                      </Button>
-                    </ButtonGroup>
-                    <ButtonGroup>
-                      <Button variant="default" onClick={() => navigateToTab("incidents")}>
-                        Next Incident <ChevronRight size={14} />
-                      </Button>
-                    </ButtonGroup>
-                  </ButtonGroup>
+                  <Button variant="default" size="sm" onClick={() => navigateToTab("incidents")}>
+                    Next Incident <ChevronRight size={13} />
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1874,7 +1580,7 @@ export default function Home() {
           <div>
             <div className="page-header-block">
               <div className="section-tag">
-                <ListFilterPlusIcon size={12} /> REPRODUCIBLE BENCHMARK CATALOG
+                <ListFilterPlusIcon size={12} /> BENCHMARK SCENARIO CATALOG
               </div>
               <h1 className="page-header-title">Incidents Catalog</h1>
               <p className="page-header-desc">
@@ -1882,7 +1588,7 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Filter and Search Bar using ButtonGroup */}
+            {/* Filter and Search Bar */}
             <div
               style={{
                 display: "flex",
@@ -1901,7 +1607,7 @@ export default function Home() {
                 />
                 <input
                   type="text"
-                  placeholder="Search by ID, title, or service..."
+                  placeholder="Filter by ID, title, or service..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -1909,8 +1615,8 @@ export default function Home() {
                     height: "32px",
                     paddingLeft: "32px",
                     paddingRight: "12px",
-                    backgroundColor: "rgba(14, 18, 27, 0.8)",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    backgroundColor: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
                     borderRadius: "4px",
                     color: "#ffffff",
                     fontSize: "0.8125rem",
@@ -1921,58 +1627,56 @@ export default function Home() {
 
               {/* Severity ButtonGroup */}
               <ButtonGroup>
-                <ButtonGroup>
-                  <Button
-                    variant={filterSeverity === "ALL" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilterSeverity("ALL")}
-                  >
-                    All ({incidents.length})
-                  </Button>
-                  <Button
-                    variant={filterSeverity === "CRITICAL" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilterSeverity("CRITICAL")}
-                  >
-                    Critical
-                  </Button>
-                  <Button
-                    variant={filterSeverity === "HIGH" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilterSeverity("HIGH")}
-                  >
-                    High
-                  </Button>
-                  <Button
-                    variant={filterSeverity === "MEDIUM" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilterSeverity("MEDIUM")}
-                  >
-                    Medium
-                  </Button>
-                </ButtonGroup>
+                <Button
+                  variant={filterSeverity === "ALL" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilterSeverity("ALL")}
+                >
+                  All ({incidents.length})
+                </Button>
+                <Button
+                  variant={filterSeverity === "CRITICAL" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilterSeverity("CRITICAL")}
+                >
+                  Critical
+                </Button>
+                <Button
+                  variant={filterSeverity === "HIGH" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilterSeverity("HIGH")}
+                >
+                  High
+                </Button>
+                <Button
+                  variant={filterSeverity === "MEDIUM" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilterSeverity("MEDIUM")}
+                >
+                  Medium
+                </Button>
               </ButtonGroup>
             </div>
 
-            {/* Incidents Table List (LISTED DOWN PROPERLY) */}
+            {/* Incidents Table List */}
             <div className="technical-list-container">
               <div
                 className="technical-list-header"
-                style={{ gridTemplateColumns: "110px 110px 1fr 150px 110px 160px" }}
+                style={{ gridTemplateColumns: "90px 90px 1fr 140px 100px 110px" }}
               >
                 <span>STATUS</span>
                 <span>ID</span>
-                <span>INCIDENT TITLE & SUMMARY</span>
+                <span>TITLE & FAILURE ANOMALY</span>
                 <span>SERVICE</span>
                 <span>SEVERITY</span>
-                <span style={{ textAlign: "right" }}>ACTIONS</span>
+                <span style={{ textAlign: "right" }}>ACTION</span>
               </div>
 
               {filteredIncidents.map((inc) => (
                 <div
                   key={inc.incident_id}
                   className="technical-list-row"
-                  style={{ gridTemplateColumns: "110px 110px 1fr 150px 110px 160px" }}
+                  style={{ gridTemplateColumns: "90px 90px 1fr 140px 100px 110px" }}
                 >
                   <div>
                     <span
@@ -1982,17 +1686,7 @@ export default function Home() {
                         gap: "5px",
                         fontSize: "0.6875rem",
                         fontFamily: "var(--font-mono)",
-                        padding: "2px 6px",
-                        borderRadius: "3px",
-                        backgroundColor:
-                          inc.incident_id === "INC-001"
-                            ? "rgba(16, 185, 129, 0.12)"
-                            : "rgba(245, 158, 11, 0.12)",
-                        color: inc.incident_id === "INC-001" ? "#6ee7b7" : "#fde68a",
-                        border:
-                          inc.incident_id === "INC-001"
-                            ? "1px solid rgba(16, 185, 129, 0.25)"
-                            : "1px solid rgba(245, 158, 11, 0.25)",
+                        color: inc.incident_id === "INC-001" ? "#6ee7b7" : "#889096",
                       }}
                     >
                       <span
@@ -2000,10 +1694,10 @@ export default function Home() {
                           width: "5px",
                           height: "5px",
                           borderRadius: "50%",
-                          backgroundColor: inc.incident_id === "INC-001" ? "#10b981" : "#f59e0b",
+                          backgroundColor: inc.incident_id === "INC-001" ? "#10b981" : "#71717a",
                         }}
                       />
-                      {inc.incident_id === "INC-001" ? "VERIFIED" : "ACTIVE"}
+                      {inc.incident_id === "INC-001" ? "VERIFIED" : "READY"}
                     </span>
                   </div>
 
@@ -2012,36 +1706,14 @@ export default function Home() {
                   </div>
 
                   <div>
-                    <div style={{ fontWeight: 600, color: "#f8fafc", marginBottom: "2px" }}>
-                      {inc.name}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--text-secondary)",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        maxWidth: "520px",
-                      }}
-                    >
+                    <div style={{ fontWeight: 500, color: "#ffffff" }}>{inc.name}</div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                       {inc.description}
                     </div>
                   </div>
 
-                  <div>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "0.75rem",
-                        color: "#93c5fd",
-                        backgroundColor: "rgba(37, 99, 235, 0.08)",
-                        padding: "2px 6px",
-                        borderRadius: "3px",
-                      }}
-                    >
-                      {inc.affected_service}
-                    </span>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd" }}>
+                    {inc.affected_service}
                   </div>
 
                   <div>
@@ -2063,39 +1735,24 @@ export default function Home() {
                   </div>
 
                   <div style={{ textAlign: "right" }}>
-                    <ButtonGroup>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedIncidentId(inc.incident_id);
-                          navigateToTab("investigations", inc.incident_id);
-                          runInvestigation(inc.incident_id, selectedSystem);
-                        }}
-                      >
-                        Investigate
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon" aria-label="More">
-                            <MoreHorizontalIcon size={12} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedIncidentId(inc.incident_id);
-                              navigateToTab("evidence");
-                            }}
-                          >
-                            <Eye size={13} /> View Telemetry
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => copyToClipboard(inc.incident_id, inc.incident_id)}>
-                            <TagIcon size={13} /> Copy Incident ID
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </ButtonGroup>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedIncidentId(inc.incident_id);
+                        navigateToTab("investigations", inc.incident_id);
+                        runInvestigation(inc.incident_id);
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#3b82f6",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.75rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Investigate →
+                    </button>
                   </div>
                 </div>
               ))}
@@ -2110,7 +1767,7 @@ export default function Home() {
           <div>
             <div className="page-header-block">
               <div className="section-tag">
-                <Layers size={12} /> EVIDENCE EXPLORER
+                <Layers size={12} /> EVIDENCE REPOSITORY
               </div>
               <h1 className="page-header-title">Evidence & Provenance Explorer</h1>
               <p className="page-header-desc">
@@ -2121,27 +1778,25 @@ export default function Home() {
             {/* Toggle View Mode ButtonGroup */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <ButtonGroup>
-                <ButtonGroup>
-                  <Button
-                    variant={evidenceViewMode === "graph" ? "default" : "outline"}
-                    onClick={() => setEvidenceViewMode("graph")}
-                  >
-                    Causal Map (DAG)
-                  </Button>
-                  <Button
-                    variant={evidenceViewMode === "table" ? "default" : "outline"}
-                    onClick={() => setEvidenceViewMode("table")}
-                  >
-                    All Telemetry Records
-                  </Button>
-                </ButtonGroup>
-              </ButtonGroup>
-
-              <ButtonGroup>
-                <Button variant="outline" size="sm" onClick={() => setSelectedEvidenceId("EV-DEP-0001")}>
-                  <Eye size={13} /> Inspect Deployment Evidence
+                <Button
+                  variant={evidenceViewMode === "graph" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEvidenceViewMode("graph")}
+                >
+                  Causal Map (DAG)
+                </Button>
+                <Button
+                  variant={evidenceViewMode === "table" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEvidenceViewMode("table")}
+                >
+                  All Telemetry Records
                 </Button>
               </ButtonGroup>
+
+              <Button variant="outline" size="sm" onClick={() => setSelectedEvidenceId("EV-DEP-0001")}>
+                <Eye size={13} /> Inspect Deployment Record
+              </Button>
             </div>
 
             {evidenceViewMode === "graph" ? (
@@ -2149,38 +1804,41 @@ export default function Home() {
                 style={{
                   border: "1px solid rgba(255, 255, 255, 0.08)",
                   borderRadius: "6px",
-                  padding: "32px",
+                  padding: "36px",
                   backgroundColor: "rgba(10, 14, 22, 0.7)",
                 }}
               >
-                <div style={{ textAlign: "center", marginBottom: "32px" }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd", marginBottom: "6px" }}>
-                    DIRECTIONAL CAUSAL EVIDENCE GRAPH (INC-001)
+                <div style={{ textAlign: "center", marginBottom: "36px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd", marginBottom: "4px" }}>
+                    DIRECTIONAL CAUSAL GRAPH (INC-001)
                   </div>
-                  <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-                    Interactive dependency chain confirming release v4.2.1 as the root cause trigger.
+                  <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                    Click a node to inspect provenance and dependent traces.
                   </div>
                 </div>
 
                 {/* Visual DAG Nodes */}
-                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
                   {[
                     { id: "node-deploy", type: "DEPLOYMENT", title: "checkout-api:v4.2.1", sub: "EV-DEP-0001", tag: "TRIGGER" },
-                    { id: "node-commit", type: "GIT COMMIT", title: "abc12348f9", sub: "EV-GIT-0001", tag: "CODE CHANGE" },
-                    { id: "node-query", type: "DB QUERY SPAN", title: "db.query (1850ms)", sub: "EV-SPAN-0001", tag: "BOTTLENECK" },
+                    { id: "node-commit", type: "GIT COMMIT", title: "abc12348f9", sub: "EV-GIT-0001", tag: "CODE DIFF" },
+                    { id: "node-query", type: "DB QUERY SPAN", title: "db.query (1850ms)", sub: "EV-SPAN-0001", tag: "REGRESSION" },
                     { id: "node-metric", type: "PROMETHEUS", title: "P99 SLA Breach", sub: "EV-METRIC-0002", tag: "SYMPTOM" },
                   ].map((node, idx) => (
                     <React.Fragment key={node.id}>
                       <div
-                        onClick={() => setSelectedGraphNode(node.id)}
+                        onClick={() => {
+                          setSelectedGraphNode(node.id);
+                          setSelectedEvidenceId(node.sub);
+                        }}
                         style={{
-                          width: "210px",
-                          padding: "16px",
-                          borderRadius: "6px",
+                          width: "200px",
+                          padding: "14px",
+                          borderRadius: "4px",
                           border:
                             selectedGraphNode === node.id
                               ? "1px solid #3b82f6"
-                              : "1px solid rgba(255, 255, 255, 0.12)",
+                              : "1px solid rgba(255, 255, 255, 0.1)",
                           backgroundColor:
                             selectedGraphNode === node.id
                               ? "rgba(37, 99, 235, 0.12)"
@@ -2189,16 +1847,16 @@ export default function Home() {
                           transition: "all 0.15s ease",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#94a3b8" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a" }}>
                             {node.type}
                           </span>
                           <span
                             style={{
                               fontFamily: "var(--font-mono)",
                               fontSize: "0.5625rem",
-                              padding: "1px 5px",
-                              borderRadius: "3px",
+                              padding: "1px 4px",
+                              borderRadius: "2px",
                               backgroundColor: "rgba(37, 99, 235, 0.2)",
                               color: "#93c5fd",
                             }}
@@ -2206,14 +1864,14 @@ export default function Home() {
                             {node.tag}
                           </span>
                         </div>
-                        <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "#ffffff", marginBottom: "4px" }}>
+                        <div style={{ fontWeight: 600, fontSize: "0.8125rem", color: "#ffffff", marginBottom: "2px" }}>
                           {node.title}
                         </div>
-                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#64748b" }}>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#889096" }}>
                           {node.sub}
                         </div>
                       </div>
-                      {idx < 3 && <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: "1.2rem" }}>→</span>}
+                      {idx < 3 && <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: "1.1rem" }}>→</span>}
                     </React.Fragment>
                   ))}
                 </div>
@@ -2223,57 +1881,55 @@ export default function Home() {
               <div className="technical-list-container">
                 <div
                   className="technical-list-header"
-                  style={{ gridTemplateColumns: "130px 140px 120px 1fr 140px" }}
+                  style={{ gridTemplateColumns: "110px 120px 100px 1fr 90px" }}
                 >
                   <span>SOURCE</span>
                   <span>EVIDENCE ID</span>
                   <span>TIMESTAMP</span>
                   <span>OBSERVATION & PAYLOAD</span>
-                  <span style={{ textAlign: "right" }}>ACTIONS</span>
+                  <span style={{ textAlign: "right" }}>ACTION</span>
                 </div>
 
                 {allEvidenceArray.map((ev) => (
                   <div
                     key={ev.id}
                     className="technical-list-row"
-                    style={{ gridTemplateColumns: "130px 140px 120px 1fr 140px" }}
+                    style={{ gridTemplateColumns: "110px 120px 100px 1fr 90px" }}
                   >
-                    <div>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.6875rem",
-                          padding: "2px 6px",
-                          borderRadius: "3px",
-                          backgroundColor: "rgba(255, 255, 255, 0.06)",
-                          color: "#cbd5e1",
-                        }}
-                      >
-                        {ev.source}
-                      </span>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#889096" }}>
+                      {ev.source}
                     </div>
 
                     <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#93c5fd" }}>
                       {ev.id}
                     </div>
 
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#94a3b8" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#71717a" }}>
                       {ev.timestamp}
                     </div>
 
                     <div>
-                      <div style={{ fontWeight: 500, color: "#f8fafc", marginBottom: "2px" }}>{ev.title}</div>
+                      <div style={{ fontWeight: 500, color: "#ffffff" }}>{ev.title}</div>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
                         Component: {ev.component}
                       </div>
                     </div>
 
                     <div style={{ textAlign: "right" }}>
-                      <ButtonGroup>
-                        <Button variant="outline" size="sm" onClick={() => setSelectedEvidenceId(ev.id)}>
-                          Inspect
-                        </Button>
-                      </ButtonGroup>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEvidenceId(ev.id)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#3b82f6",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.75rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Inspect →
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -2289,7 +1945,7 @@ export default function Home() {
           <div>
             <div className="page-header-block">
               <div className="section-tag">
-                <BarChart3 size={12} /> SCIENTIFIC RIGOR & BENCHMARKING
+                <BarChart3 size={12} /> SCIENTIFIC RIGOR & ACCURACY
               </div>
               <h1 className="page-header-title">Comparative Architecture Evaluation</h1>
               <p className="page-header-desc">
@@ -2300,39 +1956,40 @@ export default function Home() {
             {/* Test Execution ButtonGroup */}
             <div style={{ marginBottom: "20px" }}>
               <ButtonGroup>
-                <ButtonGroup>
-                  <Button
-                    variant={selectedSystem === "single-llm" ? "default" : "outline"}
-                    onClick={() => {
-                      setSelectedSystem("single-llm");
-                      runInvestigation(selectedIncidentId, "single-llm");
-                    }}
-                  >
-                    Test Single-LLM
-                  </Button>
-                  <Button
-                    variant={selectedSystem === "two-agent" ? "default" : "outline"}
-                    onClick={() => {
-                      setSelectedSystem("two-agent");
-                      runInvestigation(selectedIncidentId, "two-agent");
-                    }}
-                  >
-                    Test 2-Agent Baseline
-                  </Button>
-                  <Button
-                    variant={selectedSystem === "aletheia-3agent" ? "default" : "outline"}
-                    onClick={() => {
-                      setSelectedSystem("aletheia-3agent");
-                      runInvestigation(selectedIncidentId, "aletheia-3agent");
-                    }}
-                  >
-                    Test Aletheia 3-Agent
-                  </Button>
-                </ButtonGroup>
+                <Button
+                  variant={selectedSystem === "single-llm" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedSystem("single-llm");
+                    runInvestigation(selectedIncidentId, "single-llm");
+                  }}
+                >
+                  Test Single-LLM
+                </Button>
+                <Button
+                  variant={selectedSystem === "two-agent" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedSystem("two-agent");
+                    runInvestigation(selectedIncidentId, "two-agent");
+                  }}
+                >
+                  Test 2-Agent Baseline
+                </Button>
+                <Button
+                  variant={selectedSystem === "aletheia-3agent" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedSystem("aletheia-3agent");
+                    runInvestigation(selectedIncidentId, "aletheia-3agent");
+                  }}
+                >
+                  Test Aletheia 3-Agent
+                </Button>
               </ButtonGroup>
             </div>
 
-            {/* Benchmark Comparative Metrics List (LISTED DOWN PROPERLY) */}
+            {/* Benchmark Comparative Metrics List */}
             <div className="technical-list-container" style={{ marginBottom: "32px" }}>
               <div
                 className="technical-list-header"
@@ -2357,8 +2014,8 @@ export default function Home() {
                   className="technical-list-row"
                   style={{ gridTemplateColumns: "1fr 140px 140px 160px" }}
                 >
-                  <div style={{ fontWeight: 500, color: "#f8fafc" }}>{row.metric}</div>
-                  <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", color: "#94a3b8" }}>{row.single}</div>
+                  <div style={{ fontWeight: 500, color: "#ffffff" }}>{row.metric}</div>
+                  <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", color: "#889096" }}>{row.single}</div>
                   <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", color: "#cbd5e1" }}>{row.two}</div>
                   <div style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontWeight: 700, color: "#10b981" }}>{row.three}</div>
                 </div>
@@ -2382,34 +2039,34 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Quick Metrics Grid */}
+            {/* Metrics Strip */}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "16px",
-                marginBottom: "32px",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "12px",
+                marginBottom: "28px",
               }}
             >
               {[
                 { label: "API HEALTH", value: "HEALTHY (200 OK)", sub: "FastAPI Daemon Active", color: "#10b981" },
                 { label: "INFERENCE MODEL", value: "GPT-4O-MINI", sub: "Determinism Mode T=0.0", color: "#93c5fd" },
-                { label: "TOKEN SPEND (RUN)", value: "960 TOKENS", sub: "$0.00014 USD Est.", color: "#f8fafc" },
-                { label: "P99 VERIFICATION LATENCY", value: "2.1ms", sub: "In-memory graph traversal", color: "#10b981" },
+                { label: "TOKEN SPEND (RUN)", value: "960 TOKENS", sub: "$0.00014 USD Est.", color: "#ffffff" },
+                { label: "P99 LATENCY", value: "2.1ms", sub: "In-memory graph traversal", color: "#10b981" },
               ].map((m, idx) => (
                 <div
                   key={idx}
                   style={{
                     border: "1px solid rgba(255, 255, 255, 0.08)",
-                    backgroundColor: "rgba(14, 18, 27, 0.65)",
-                    borderRadius: "6px",
-                    padding: "16px 20px",
+                    backgroundColor: "rgba(255, 255, 255, 0.015)",
+                    borderRadius: "4px",
+                    padding: "14px 16px",
                   }}
                 >
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "4px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "#71717a", marginBottom: "4px" }}>
                     {m.label}
                   </div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "1.1rem", color: m.color, marginBottom: "2px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "1rem", color: m.color, marginBottom: "2px" }}>
                     {m.value}
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{m.sub}</div>
@@ -2417,13 +2074,13 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Live LLMOps Traces (LISTED DOWN PROPERLY) */}
+            {/* Live LLMOps Traces Table */}
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "12px" }}>
                 <h3 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#ffffff" }}>
                   Live LLM Call Records & Accounting
                 </h3>
-                <Button variant="outline" size="sm" onClick={() => runInvestigation(selectedIncidentId, selectedSystem)}>
+                <Button variant="ghost" size="sm" onClick={() => runInvestigation(selectedIncidentId, selectedSystem)}>
                   <RefreshCw size={12} /> Refresh Traces
                 </Button>
               </div>
@@ -2431,7 +2088,7 @@ export default function Home() {
               <div className="technical-list-container">
                 <div
                   className="technical-list-header"
-                  style={{ gridTemplateColumns: "180px 140px 110px 120px 1fr" }}
+                  style={{ gridTemplateColumns: "180px 140px 100px 110px 1fr" }}
                 >
                   <span>TRACE ID</span>
                   <span>MODEL</span>
@@ -2472,7 +2129,7 @@ export default function Home() {
                   <div
                     key={idx}
                     className="technical-list-row"
-                    style={{ gridTemplateColumns: "180px 140px 110px 120px 1fr" }}
+                    style={{ gridTemplateColumns: "180px 140px 100px 110px 1fr" }}
                   >
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#93c5fd" }}>
                       {tr.trace_id}
@@ -2485,8 +2142,8 @@ export default function Home() {
                         style={{
                           fontFamily: "var(--font-mono)",
                           fontSize: "0.625rem",
-                          padding: "2px 6px",
-                          borderRadius: "3px",
+                          padding: "1px 5px",
+                          borderRadius: "2px",
                           backgroundColor: "rgba(16, 185, 129, 0.12)",
                           color: "#6ee7b7",
                         }}
@@ -2494,7 +2151,7 @@ export default function Home() {
                         {tr.status}
                       </span>
                     </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#94a3b8" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#889096" }}>
                       {tr.latency_ms.toFixed(1)}ms
                     </div>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
@@ -2509,81 +2166,10 @@ export default function Home() {
       </main>
 
       {/* SLIDE-OUT PROVENANCE & EVIDENCE INSPECTOR DRAWER */}
-      {selectedEvidenceId && evidenceRecords[selectedEvidenceId] && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            width: "480px",
-            maxWidth: "90vw",
-            backgroundColor: "#0d111a",
-            borderLeft: "1px solid rgba(255, 255, 255, 0.12)",
-            boxShadow: "-10px 0 30px rgba(0, 0, 0, 0.7)",
-            zIndex: 100,
-            padding: "24px",
-            overflowY: "auto",
-            backdropFilter: "blur(16px)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#93c5fd" }}>
-                TELEMETRY PROVENANCE INSPECTOR
-              </div>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#ffffff" }}>
-                {selectedEvidenceId}
-              </h3>
-            </div>
-            <Button variant="outline" size="icon" aria-label="Close" onClick={() => setSelectedEvidenceId(null)}>
-              <X size={14} />
-            </Button>
-          </div>
-
-          <div style={{ marginBottom: "20px" }}>
-            <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#ffffff", marginBottom: "6px" }}>
-              {evidenceRecords[selectedEvidenceId].title}
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#94a3b8" }}>
-              Source: {evidenceRecords[selectedEvidenceId].source} • Time: {evidenceRecords[selectedEvidenceId].timestamp}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: "24px" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: "8px" }}>
-              RAW ATTRIBUTES & PAYLOAD
-            </div>
-            <pre
-              style={{
-                backgroundColor: "#06080d",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: "4px",
-                padding: "14px",
-                fontFamily: "var(--font-mono)",
-                fontSize: "0.75rem",
-                color: "#e2e8f0",
-                overflowX: "auto",
-                lineHeight: 1.5,
-              }}
-            >
-              {JSON.stringify(evidenceRecords[selectedEvidenceId].payload, null, 2)}
-            </pre>
-          </div>
-
-          <ButtonGroup>
-            <Button
-              variant="outline"
-              onClick={() => copyToClipboard(JSON.stringify(evidenceRecords[selectedEvidenceId].payload, null, 2), "payload")}
-            >
-              <Copy size={13} /> {copiedId === "payload" ? "Copied" : "Copy Raw JSON"}
-            </Button>
-            <Button variant="default" onClick={() => setSelectedEvidenceId(null)}>
-              Close Inspector
-            </Button>
-          </ButtonGroup>
-        </div>
-      )}
+      <EvidenceDrawer
+        evidence={selectedEvidenceId ? evidenceRecords[selectedEvidenceId] || null : null}
+        onClose={() => setSelectedEvidenceId(null)}
+      />
     </DarkGradientBg>
   );
 }
