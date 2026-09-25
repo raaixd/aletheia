@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-006",
+  "name": "Unclosed Session Leak Leading to Connection Pool Exhaustion",
+  "description": "API endpoints abandon DB connections without closing sessions, exhausting PostgreSQL max_connections limit.",
+  "target_service": "checkout-api",
+  "injection_point": "database_session_lifecycle",
+  "default_parameters": {
+    "leak_probability": 1.0
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "incident_id": "INC-016",
+  "name": "disk_full_storage_exhaustion",
+  "root_cause": "postgres_wal_disk_full",
+  "introduced_by": "unarchived_wal_segment_accumulation",
+  "affected_service": "postgresql",
+  "start_time": "2026-09-25T17:00:00Z",
+  "expected_evidence": [
+    "disk_utilization_100pct",
+    "wal_write_error",
+    "read_only_filesystem"
+  ],
+  "ground_truth_details": {
+    "component": "postgresql_wal",
+    "regression_type": "no_space_left_on_device",
+    "disk_path": "/var/lib/postgresql/data/pg_wal"
+  }
+}

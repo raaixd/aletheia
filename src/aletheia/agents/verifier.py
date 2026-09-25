@@ -56,9 +56,12 @@ class Verifier:
                 if cid in valid_ids:
                     contradictions_detected.append(f"Contradicted by evidence {cid}")
 
-        # If a hypothesis claims memory leak or JVM issue in INC-001 where component is postgresql/python
-        if "jvm" in hypothesis.hypothesis.lower() or "memory leak" in hypothesis.hypothesis.lower():
-            contradictions_detected.append("Telemetry shows Python/FastAPI service, JVM memory leak is contraindicated.")
+        # Domain contradictions
+        obs_text = " ".join(obs.statement.lower() for obs in context.observations) + " " + context.alert_description.lower()
+        if "jvm" in hypothesis.hypothesis.lower():
+            contradictions_detected.append("Telemetry shows Python/FastAPI service, JVM issues are contraindicated.")
+        elif "memory leak" in hypothesis.hypothesis.lower() and not any(k in obs_text for k in ["memory", "oom", "resident", "heap"]):
+            contradictions_detected.append("Telemetry shows normal memory metrics, memory leak is contraindicated.")
 
         # 3. Check temporal ordering
         temporal_ordering_valid = True

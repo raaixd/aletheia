@@ -108,7 +108,7 @@ class Investigator:
         relevant_items = [item for item in evidence_items if self.is_relevant_evidence(item)]
         relevant_evidence_ids = [item.evidence_id for item in relevant_items]
 
-        # 3. Extract important entities from Evidence Graph
+        # 3. Extract important entities from Evidence Graph & relevant telemetry
         important_entities: List[EntitySummary] = []
         for node in evidence_graph.nodes.values():
             if node.category == "ENTITY" and node.entity:
@@ -121,6 +121,20 @@ class Investigator:
                         properties=node.entity.properties,
                     )
                 )
+
+        existing_entity_names = {e.name for e in important_entities}
+        for item in relevant_items:
+            if item.service and item.service != "unknown" and item.service not in existing_entity_names:
+                important_entities.append(
+                    EntitySummary(
+                        entity_id=f"ENT-SVC-{item.service.upper().replace('-', '_')}",
+                        name=item.service,
+                        type="SERVICE",
+                        role="affected_service",
+                        properties={"source": "telemetry_evidence"},
+                    )
+                )
+                existing_entity_names.add(item.service)
 
         # 4. Extract relevant causal & temporal relationships
         relevant_relationships: List[RelationshipSummary] = []

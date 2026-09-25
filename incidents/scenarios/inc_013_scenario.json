@@ -1,0 +1,11 @@
+{
+  "scenario_id": "INC-013",
+  "name": "Runbook Specifies Obsolete Port Number",
+  "description": "Incident runbook claims service listens on port 8003, but architectural migration moved it to port 8001.",
+  "target_service": "checkout-api",
+  "injection_point": "runbook_documentation",
+  "default_parameters": {
+    "doc_port": 8003,
+    "live_port": 8001
+  }
+}

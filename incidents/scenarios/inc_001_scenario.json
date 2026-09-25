@@ -1,0 +1,12 @@
+{
+  "scenario_id": "INC-001",
+  "name": "Database Query Regression on Order History",
+  "description": "Simulates release v4.2.1 introducing an unindexed sort on the orders table causing a sequential scan.",
+  "target_service": "checkout-api",
+  "injection_point": "database_query_orders",
+  "default_parameters": {
+    "latency_ms": 1500.0,
+    "jitter_ms": 150.0,
+    "error_probability": 0.0
+  }
+}

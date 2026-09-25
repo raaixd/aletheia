@@ -1,0 +1,11 @@
+{
+  "scenario_id": "INC-005",
+  "name": "Database Connection Pool Throttled to 1",
+  "description": "Database pool size misconfigured to 1 in production environment settings, causing concurrent requests to block.",
+  "target_service": "checkout-api",
+  "injection_point": "database_engine_config",
+  "default_parameters": {
+    "pool_size": 1,
+    "pool_timeout_s": 2.0
+  }
+}

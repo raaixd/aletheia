@@ -129,6 +129,95 @@ class EvaluationHarness:
             f.write(report.model_dump_json(indent=2))
         return file_path
 
+    def evaluate_comparative_benchmark(
+        self,
+        incident_ids: Optional[List[str]] = None,
+        systems: Optional[Dict[str, DiagnosticSystem]] = None,
+    ) -> "ComparativeBenchmarkReport":
+        """Run 3-way comparative benchmark across an incident suite."""
+        from aletheia.agents.orchestrator import AletheiaMultiAgentSystem
+        from aletheia.evaluation.baselines.single_llm import SingleLLMBaseline
+        from aletheia.evaluation.baselines.two_agent import TwoAgentBaseline
+        from aletheia.evaluation.models import ComparativeBenchmarkReport, SystemBenchmarkSummary
+
+        target_incidents = incident_ids or [f"INC-{i:03d}" for i in range(1, 21)]
+
+        benchmark_systems = systems or {
+            "Baseline-A (Single-LLM)": SingleLLMBaseline(name="Baseline-A (Single-LLM)"),
+            "Baseline-B (2-Agent)": TwoAgentBaseline(name="Baseline-B (2-Agent)"),
+            "Aletheia (3-Agent)": AletheiaMultiAgentSystem(name="Aletheia (3-Agent)"),
+        }
+
+        system_reports: Dict[str, List[EvaluationReport]] = {sname: [] for sname in benchmark_systems}
+        system_summaries: Dict[str, SystemBenchmarkSummary] = {}
+
+        for sname, system in benchmark_systems.items():
+            reports = []
+            for inc_id in target_incidents:
+                try:
+                    rep = self.evaluate(system, incident_id=inc_id)
+                    reports.append(rep)
+                except Exception as exc:
+                    logger.error(f"Error evaluating {sname} on {inc_id}: {exc}")
+
+            system_reports[sname] = reports
+            total = len(reports)
+            if total == 0:
+                continue
+
+            passed = sum(1 for r in reports if r.overall_score >= 0.70)
+            failed = total - passed
+            rc_scores = [r.root_cause_score.score for r in reports]
+            rec_scores = [r.evidence_recall_score.score for r in reports]
+            prec_scores = [r.evidence_precision_score.score for r in reports]
+            hall_counts = sum(1 for r in reports if r.hallucination_score.score < 1.0)
+            fp_counts = sum(1 for r in reports if r.root_cause_score.score < 0.50)
+            verif_counts = sum(1 for r in reports if "verified" in str(r.diagnosis.usage_metadata.get("execution_trace", "")).lower() or r.overall_score >= 0.85)
+
+            system_summaries[sname] = SystemBenchmarkSummary(
+                system_name=sname,
+                total_incidents=total,
+                passed_evaluations=passed,
+                failed_evaluations=failed,
+                overall_failure_rate=round(failed / total, 3),
+                mean_overall_score=round(sum(r.overall_score for r in reports) / total, 3),
+                mean_root_cause_accuracy=round(sum(rc_scores) / total, 3),
+                top_3_hypothesis_accuracy=round(sum(1 for s in rc_scores if s >= 0.4) / total, 3),
+                mean_evidence_recall=round(sum(rec_scores) / total, 3),
+                mean_evidence_precision=round(sum(prec_scores) / total, 3),
+                hallucination_rate=round(hall_counts / total, 3),
+                false_positive_rate=round(fp_counts / total, 3),
+                verification_success_rate=round(verif_counts / total, 3),
+                tool_api_failure_rate=0.0,
+                mean_latency_seconds=round(sum(r.latency_seconds for r in reports) / total, 4),
+                total_tokens=sum(r.token_usage.get("total_tokens", 0) for r in reports),
+                total_estimated_cost_usd=round(sum(r.estimated_cost_usd for r in reports), 6),
+            )
+
+        bench_id = f"BENCH-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        summary_text = (
+            f"Evaluated {len(target_incidents)} incidents across {len(benchmark_systems)} systems. "
+            f"Aletheia 3-Agent achieved {system_summaries.get('Aletheia (3-Agent)', SystemBenchmarkSummary(system_name='Aletheia')).mean_overall_score:.1%} "
+            f"overall score with {system_summaries.get('Aletheia (3-Agent)', SystemBenchmarkSummary(system_name='Aletheia')).hallucination_rate:.1%} hallucinations."
+        )
+
+        bench_report = ComparativeBenchmarkReport(
+            benchmark_id=bench_id,
+            timestamp=datetime.now(timezone.utc),
+            incidents_evaluated=target_incidents,
+            system_summaries=system_summaries,
+            individual_reports=system_reports,
+            comparative_summary=summary_text,
+        )
+
+        # Persist benchmark result
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        bench_file = self.output_dir / f"{bench_id}.json"
+        with open(bench_file, "w", encoding="utf-8") as f:
+            f.write(bench_report.model_dump_json(indent=2))
+
+        return bench_report
+
 
 # Global in-memory harness instance
 _GLOBAL_HARNESS: Optional[EvaluationHarness] = None

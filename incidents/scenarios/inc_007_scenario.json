@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-007",
+  "name": "Catastrophic ReDoS Causing CPU Saturation",
+  "description": "Exponential regular expression backtracking locks CPU cores at 100% on request authorization.",
+  "target_service": "auth-service",
+  "injection_point": "token_validator_regex",
+  "default_parameters": {
+    "cpu_burn_ms": 2500.0
+  }
+}

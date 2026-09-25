@@ -139,3 +139,72 @@ class DiagnosticSystem(Protocol):
     ) -> DiagnosisResult:
         """Analyze evidence and return a structured diagnosis."""
         ...
+
+
+class SystemBenchmarkSummary(BaseModel):
+    """Aggregate benchmark metrics for a single diagnostic system across multiple incidents."""
+    model_config = ConfigDict(extra="ignore")
+
+    system_name: str
+    total_incidents: int = 0
+    passed_evaluations: int = 0
+    failed_evaluations: int = 0
+    overall_failure_rate: float = 0.0
+
+    mean_overall_score: float = 0.0
+    mean_root_cause_accuracy: float = 0.0
+    top_3_hypothesis_accuracy: float = 0.0
+    mean_evidence_recall: float = 0.0
+    mean_evidence_precision: float = 0.0
+
+    hallucination_rate: float = 0.0  # % of runs citing >= 1 hallucinated ID
+    false_positive_rate: float = 0.0  # % of runs with wrong root cause
+    verification_success_rate: float = 0.0  # % of verified diagnoses
+    tool_api_failure_rate: float = 0.0
+
+    mean_latency_seconds: float = 0.0
+    total_tokens: int = 0
+    total_estimated_cost_usd: float = 0.0
+
+
+class ComparativeBenchmarkReport(BaseModel):
+    """Comparative benchmark results across Baseline A, Baseline B, and Aletheia 3-Agent system."""
+    model_config = ConfigDict(extra="ignore")
+
+    benchmark_id: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    incidents_evaluated: List[str]
+    system_summaries: Dict[str, SystemBenchmarkSummary]
+    individual_reports: Dict[str, List[EvaluationReport]] = Field(default_factory=dict)
+    comparative_summary: str = ""
+
+    def format_markdown_table(self) -> str:
+        """Render a comparative markdown table for documentation and reports."""
+        lines = [
+            "| Metric | Baseline A (Single-LLM) | Baseline B (2-Agent) | Aletheia (3-Agent) |",
+            "|---|---|---|---|",
+        ]
+        systems = list(self.system_summaries.keys())
+        s1 = self.system_summaries.get(systems[0]) if len(systems) > 0 else None
+        s2 = self.system_summaries.get(systems[1]) if len(systems) > 1 else None
+        s3 = self.system_summaries.get(systems[2]) if len(systems) > 2 else None
+
+        def fmt_row(label: str, getter):
+            v1 = getter(s1) if s1 else "N/A"
+            v2 = getter(s2) if s2 else "N/A"
+            v3 = getter(s3) if s3 else "N/A"
+            return f"| **{label}** | {v1} | {v2} | {v3} |"
+
+        lines.append(fmt_row("Root-Cause Accuracy", lambda s: f"{s.mean_root_cause_accuracy:.1%}"))
+        lines.append(fmt_row("Top-3 Hypothesis Accuracy", lambda s: f"{s.top_3_hypothesis_accuracy:.1%}"))
+        lines.append(fmt_row("Evidence Recall", lambda s: f"{s.mean_evidence_recall:.1%}"))
+        lines.append(fmt_row("Evidence Precision", lambda s: f"{s.mean_evidence_precision:.1%}"))
+        lines.append(fmt_row("Hallucination Rate", lambda s: f"{s.hallucination_rate:.1%}"))
+        lines.append(fmt_row("False-Positive Rate", lambda s: f"{s.false_positive_rate:.1%}"))
+        lines.append(fmt_row("Verification Success", lambda s: f"{s.verification_success_rate:.1%}"))
+        lines.append(fmt_row("Overall Composite Score", lambda s: f"{s.mean_overall_score:.1%}"))
+        lines.append(fmt_row("Mean Latency", lambda s: f"{s.mean_latency_seconds:.3f}s"))
+        lines.append(fmt_row("Total Estimated Cost", lambda s: f"${s.total_estimated_cost_usd:.4f}"))
+        lines.append(fmt_row("Overall Failure Rate", lambda s: f"{s.overall_failure_rate:.1%}"))
+
+        return "\n".join(lines)

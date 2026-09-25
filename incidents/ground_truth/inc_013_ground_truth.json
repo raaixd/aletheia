@@ -1,0 +1,19 @@
+{
+  "incident_id": "INC-013",
+  "name": "stale_documentation",
+  "root_cause": "migrated_service_port_unreflected_in_runbook",
+  "introduced_by": "port_migration_v4.2.0",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T14:00:00Z",
+  "expected_evidence": [
+    "connection_refused_port_8003",
+    "active_listener_port_8001",
+    "stale_runbook_diff"
+  ],
+  "ground_truth_details": {
+    "component": "service_mesh_routing",
+    "regression_type": "runbook_documentation_drift",
+    "runbook_port": 8003,
+    "actual_port": 8001
+  }
+}

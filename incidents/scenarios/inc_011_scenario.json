@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-011",
+  "name": "Critical Application Logs Dropped by Log Shipper",
+  "description": "Log daemon buffers overflowed, leaving only metric aggregates and distributed traces to diagnose the failure.",
+  "target_service": "checkout-api",
+  "injection_point": "logging_stream",
+  "default_parameters": {
+    "drop_logs": true
+  }
+}

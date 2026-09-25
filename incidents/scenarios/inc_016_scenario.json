@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-016",
+  "name": "PostgreSQL WAL Volume 100% Full",
+  "description": "WAL log generation fills the database partition, forcing PostgreSQL into read-only transaction rejection.",
+  "target_service": "checkout-api",
+  "injection_point": "database_storage",
+  "default_parameters": {
+    "disk_used_pct": 100.0
+  }
+}

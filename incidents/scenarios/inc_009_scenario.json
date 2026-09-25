@@ -1,0 +1,11 @@
+{
+  "scenario_id": "INC-009",
+  "name": "Simultaneous Failure of Payment Gateway and Redis Cache",
+  "description": "Simultaneous independent degradation of both third-party payment partner and in-cluster session cache.",
+  "target_service": "checkout-api",
+  "injection_point": "checkout_pipeline_dependencies",
+  "default_parameters": {
+    "payment_failing": true,
+    "redis_failing": true
+  }
+}

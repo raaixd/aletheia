@@ -1,0 +1,22 @@
+{
+  "incident_id": "INC-018",
+  "name": "silent_data_corruption",
+  "root_cause": "currency_rounding_precision_overflow",
+  "introduced_by": "commit_float018",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T19:00:00Z",
+  "expected_evidence": [
+    "commit_float018",
+    "order_validation_nan_log",
+    "mismatched_invoice_totals"
+  ],
+  "ground_truth_details": {
+    "component": "pricing_engine",
+    "regression_type": "floating_point_precision_loss",
+    "commit_metadata": {
+      "commit_id": "float01877cc",
+      "author": "checkout.lead@example.com",
+      "message": "refactor(pricing): replace Decimal with float for calculation speed"
+    }
+  }
+}

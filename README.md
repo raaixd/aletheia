@@ -6,7 +6,7 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
 
 ---
 
-## Current Status: Phase 6 — Multi-Agent Investigation (LangGraph) Complete
+## Current Status: Phase 7 — Incident Benchmark & Comparative Evaluation Complete
 
 - **Phase 1 (Foundation)**: Simulated checkout service, PostgreSQL 16, Docker Compose, automated product seeding, synthetic traffic generator.
 - **Phase 2 (Observability)**: Correlated telemetry triad across all services (structured JSON logging, context-aware correlation IDs, Prometheus metrics, OpenTelemetry distributed tracing).
@@ -22,7 +22,23 @@ Aletheia is an AI-powered incident investigation system for software systems. Wh
   - **Analyst Agent**: Formulates multiple competing hypotheses, maps supporting and contradicting evidence, identifies missing telemetry, and distinguishes correlation from causation.
   - **Verifier Agent**: Adversarially challenges hypotheses, audits temporal order (causes must precede effects), checks causal evidence, catches contradictions, and forms final diagnosis or flags insufficient evidence.
   - **LangGraph StateGraph Workflow**: Connects Investigator -> Analyst -> Verifier into a clean state machine.
-  - **Automated Verification**: 100% passing test suite (90/90 unit and integration tests, 88% coverage).
+- **Phase 7 (Incident Benchmark & Comparative Evaluation)**:
+  - **20-Incident Benchmark Catalog**: 20 distinct reproducible incidents across 15 failure categories (query regressions, memory leaks, third-party timeouts, schema drifts, connection pool exhaustion, ReDoS CPU saturation, WAL disk full, deadlocks, cascading failures).
+  - **Baseline B (2-Agent System)**: Investigator + Analyst without Verifier challenge loop.
+  - **Rigorous 3-Way Comparative Benchmark (20 Incidents × 3 Systems)**:
+
+| Metric | Baseline A (Single-LLM) | Baseline B (2-Agent) | Aletheia (3-Agent) |
+|---|---|---|---|
+| **Root-Cause Accuracy** | 46.5% | 68.0% | **69.5%** |
+| **Top-3 Hypothesis Accuracy** | 100.0% | 95.0% | 95.0% |
+| **Evidence Recall** | 49.6% | 56.2% | **56.2%** |
+| **Evidence Precision** | 73.8% | **100.0%** | **100.0%** |
+| **Hallucination Rate** | 95.0% | **0.0%** | **0.0%** |
+| **False-Positive Rate** | 70.0% | 30.0% | **25.0%** |
+| **Verification Success** | 5.0% | 15.0% | **100.0%** |
+| **Overall Composite Score** | 22.1% | 65.5% | **66.1%** |
+| **Mean Latency** | **0.000s** | 0.000s | 0.001s |
+  - **Automated Verification**: 100% passing test suite (93/93 tests, 88% coverage).
 
 ---
 

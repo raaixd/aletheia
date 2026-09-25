@@ -1,0 +1,24 @@
+{
+  "incident_id": "INC-005",
+  "name": "configuration_error",
+  "root_cause": "pool_size_misconfiguration",
+  "introduced_by": "config_commit_cfg005",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T06:00:00Z",
+  "expected_evidence": [
+    "config_change_pool_size",
+    "pool_timeout_errors",
+    "thread_contention"
+  ],
+  "ground_truth_details": {
+    "component": "database_connection_pool",
+    "regression_type": "pool_size_throttled",
+    "previous_pool_size": 20,
+    "new_pool_size": 1,
+    "commit_metadata": {
+      "commit_id": "cfg00522ee",
+      "author": "sre.ops@example.com",
+      "message": "fix(env): mistakenly reduced DB_POOL_SIZE to 1 in production configmap"
+    }
+  }
+}

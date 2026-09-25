@@ -1,0 +1,23 @@
+{
+  "incident_id": "INC-010",
+  "name": "misleading_symptoms",
+  "root_cause": "disk_io_lock_contention",
+  "introduced_by": "unbuffered_audit_logger",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T11:00:00Z",
+  "expected_evidence": [
+    "disk_iowait_spike",
+    "commit_log010",
+    "synced_filesystem_fsync"
+  ],
+  "ground_truth_details": {
+    "component": "audit_file_logger",
+    "regression_type": "blocking_fsync_lock",
+    "misleading_signal": "High CPU Wait reported as compute exhaustion, but actual cause is blocking disk I/O.",
+    "commit_metadata": {
+      "commit_id": "log01055bb",
+      "author": "audit.compliance@example.com",
+      "message": "compliance(audit): flush every request line synchronously with os.fsync()"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "scenario_id": "INC-003",
+  "name": "Third-Party Payment Gateway Latency Spike and 504 Timeouts",
+  "description": "Simulates downstream partner API degradation where payment processing takes 8+ seconds and times out.",
+  "target_service": "checkout-api",
+  "injection_point": "payment_service_client",
+  "default_parameters": {
+    "external_latency_ms": 8500.0,
+    "timeout_seconds": 5.0
+  }
+}

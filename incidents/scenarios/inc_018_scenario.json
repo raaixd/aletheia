@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-018",
+  "name": "Floating Point Precision Overflow in Checkout Totals",
+  "description": "Converting currency calculations from Decimal to float results in NaN values and silently corrupts invoices.",
+  "target_service": "checkout-api",
+  "injection_point": "pricing_math",
+  "default_parameters": {
+    "use_float": true
+  }
+}

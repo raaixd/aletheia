@@ -1,0 +1,22 @@
+{
+  "incident_id": "INC-020",
+  "name": "concurrent_write_deadlock",
+  "root_cause": "postgresql_deadlock_concurrent_orders",
+  "introduced_by": "commit_dead020",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T21:00:00Z",
+  "expected_evidence": [
+    "commit_dead020",
+    "deadlock_detected_log",
+    "http_500_on_checkout"
+  ],
+  "ground_truth_details": {
+    "component": "postgresql",
+    "regression_type": "circular_row_locks",
+    "commit_metadata": {
+      "commit_id": "dead02088dd",
+      "author": "concurrency.eng@example.com",
+      "message": "fix(inventory): lock product items in arbitrary order instead of sorted ID order"
+    }
+  }
+}

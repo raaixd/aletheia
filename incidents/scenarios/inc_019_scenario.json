@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-019",
+  "name": "Expired Client Certificate Blocks Inventory RPC Calls",
+  "description": "mTLS certificate expired, causing all secure RPC handshakes between checkout and inventory to terminate with SSL errors.",
+  "target_service": "checkout-api",
+  "injection_point": "rpc_tls_context",
+  "default_parameters": {
+    "cert_expired": true
+  }
+}

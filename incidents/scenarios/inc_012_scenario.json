@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-012",
+  "name": "Decommissioned Ghost Pod Emits Conflicting Telemetry",
+  "description": "A zombie canary pod continues sending alarm metrics that contradict healthy telemetry from active production nodes.",
+  "target_service": "checkout-api",
+  "injection_point": "metric_reporter_agent",
+  "default_parameters": {
+    "ghost_node_errors": true
+  }
+}

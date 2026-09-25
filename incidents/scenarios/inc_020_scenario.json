@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-020",
+  "name": "Row-Level Database Deadlocks Under Concurrent Traffic",
+  "description": "Locking inventory rows in non-deterministic order produces cyclic dependency deadlocks on simultaneous purchases.",
+  "target_service": "checkout-api",
+  "injection_point": "inventory_reservation_lock",
+  "default_parameters": {
+    "lock_order": "random"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-008",
+  "name": "Cache Flushed Leading to Thundering Herd on Database",
+  "description": "Redis cache eviction triggers instantaneous thundering herd of product catalog queries directly to PostgreSQL.",
+  "target_service": "checkout-api",
+  "injection_point": "catalog_cache_layer",
+  "default_parameters": {
+    "cache_available": false
+  }
+}

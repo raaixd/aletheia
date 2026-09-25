@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-010",
+  "name": "Synchronous File Lock Masquerading as High CPU",
+  "description": "Synchronous audit logging with forced disk sync causes CPU iowait to spike, misleading monitors into suspecting compute saturation.",
+  "target_service": "checkout-api",
+  "injection_point": "audit_logger_io",
+  "default_parameters": {
+    "fsync_every_write": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "incident_id": "INC-002",
+  "name": "memory_leak",
+  "root_cause": "process_memory_leak",
+  "introduced_by": "commit_mem002",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T03:00:00Z",
+  "expected_evidence": [
+    "deployment_v4.2.2",
+    "commit_mem002",
+    "rss_memory_growth",
+    "oom_restart"
+  ],
+  "ground_truth_details": {
+    "component": "python_worker",
+    "regression_type": "unbounded_in_memory_cache",
+    "baseline_rss_mb": 120.0,
+    "regressed_rss_mb": 1850.0,
+    "commit_metadata": {
+      "commit_id": "mem00288ab",
+      "author": "dev.perf@example.com",
+      "message": "perf(cache): add global in-memory request dictionary without TTL eviction",
+      "deployment_version": "v4.2.2"
+    }
+  }
+}

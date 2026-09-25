@@ -12,9 +12,6 @@
     "increased_checkout_latency"
   ],
   "ground_truth_details": {
-    "affected_endpoints": [
-      "/api/orders"
-    ],
     "component": "postgresql",
     "table": "orders",
     "regression_type": "unindexed_sequential_scan",
@@ -23,7 +20,7 @@
     "commit_metadata": {
       "commit_id": "abc12348f9",
       "author": "alex.dev@example.com",
-      "message": "refactor(checkout): update order history lookup query to sort by updated_at without composite index",
+      "message": "refactor(checkout): update order history lookup without index",
       "deployment_version": "v4.2.1"
     }
   }

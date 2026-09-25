@@ -1,0 +1,18 @@
+{
+  "incident_id": "INC-012",
+  "name": "contradictory_evidence",
+  "root_cause": "decommissioned_canary_emitting_stale_metrics",
+  "introduced_by": "stale_k8s_canary_daemonset",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T13:00:00Z",
+  "expected_evidence": [
+    "stale_node_metric",
+    "healthy_active_pod_traces",
+    "ip_mismatch_warning"
+  ],
+  "ground_truth_details": {
+    "component": "canary_node",
+    "regression_type": "conflicting_telemetry_sources",
+    "contradiction": "Ghost canary node reports 100% error rate while active production pods show 0% error rate."
+  }
+}

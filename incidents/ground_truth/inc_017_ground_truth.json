@@ -1,0 +1,18 @@
+{
+  "incident_id": "INC-017",
+  "name": "dns_resolution_failure",
+  "root_cause": "internal_dns_coredns_failure",
+  "introduced_by": "coredns_configmap_typo",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T18:00:00Z",
+  "expected_evidence": [
+    "nxdomain_lookup_error",
+    "outbound_socket_gaierror",
+    "auth_service_unreachable"
+  ],
+  "ground_truth_details": {
+    "component": "coredns",
+    "regression_type": "name_resolution_failure",
+    "unresolved_host": "auth.internal.service"
+  }
+}

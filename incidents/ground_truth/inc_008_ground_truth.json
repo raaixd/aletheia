@@ -1,0 +1,18 @@
+{
+  "incident_id": "INC-008",
+  "name": "cascading_failure",
+  "root_cause": "cache_eviction_thundering_herd",
+  "introduced_by": "redis_restart_event",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T09:00:00Z",
+  "expected_evidence": [
+    "redis_eviction_event",
+    "cache_miss_rate_100pct",
+    "database_connection_spike"
+  ],
+  "ground_truth_details": {
+    "component": "redis_cache",
+    "regression_type": "thundering_herd_on_primary_db",
+    "mitigation": "Add probabilistic early expiration or request coalescing"
+  }
+}

@@ -1,0 +1,1871 @@
+{
+  "benchmark_id": "BENCH-20260925-144304",
+  "timestamp": "2026-09-25T14:43:04.744105Z",
+  "incidents_evaluated": [
+    "INC-001",
+    "INC-002",
+    "INC-003",
+    "INC-004",
+    "INC-005"
+  ],
+  "system_summaries": {
+    "Baseline-A (Single-LLM)": {
+      "system_name": "Baseline-A (Single-LLM)",
+      "total_incidents": 5,
+      "passed_evaluations": 1,
+      "failed_evaluations": 4,
+      "overall_failure_rate": 0.8,
+      "mean_overall_score": 0.332,
+      "mean_root_cause_accuracy": 0.92,
+      "top_3_hypothesis_accuracy": 1.0,
+      "mean_evidence_recall": 0.2,
+      "mean_evidence_precision": 0.7,
+      "hallucination_rate": 0.8,
+      "false_positive_rate": 0.0,
+      "verification_success_rate": 0.2,
+      "tool_api_failure_rate": 0.0,
+      "mean_latency_seconds": 0.0,
+      "total_tokens": 2350,
+      "total_estimated_cost_usd": 0.0
+    },
+    "Baseline-B (2-Agent)": {
+      "system_name": "Baseline-B (2-Agent)",
+      "total_incidents": 5,
+      "passed_evaluations": 1,
+      "failed_evaluations": 4,
+      "overall_failure_rate": 0.8,
+      "mean_overall_score": 0.676,
+      "mean_root_cause_accuracy": 0.92,
+      "top_3_hypothesis_accuracy": 1.0,
+      "mean_evidence_recall": 0.2,
+      "mean_evidence_precision": 1.0,
+      "hallucination_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "verification_success_rate": 0.2,
+      "tool_api_failure_rate": 0.0,
+      "mean_latency_seconds": 0.0001,
+      "total_tokens": 0,
+      "total_estimated_cost_usd": 0.0
+    },
+    "Aletheia (3-Agent)": {
+      "system_name": "Aletheia (3-Agent)",
+      "total_incidents": 5,
+      "passed_evaluations": 1,
+      "failed_evaluations": 4,
+      "overall_failure_rate": 0.8,
+      "mean_overall_score": 0.73,
+      "mean_root_cause_accuracy": 0.92,
+      "top_3_hypothesis_accuracy": 1.0,
+      "mean_evidence_recall": 0.2,
+      "mean_evidence_precision": 1.0,
+      "hallucination_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "verification_success_rate": 1.0,
+      "tool_api_failure_rate": 0.0,
+      "mean_latency_seconds": 0.0019,
+      "total_tokens": 0,
+      "total_estimated_cost_usd": 0.0
+    }
+  },
+  "individual_reports": {
+    "Baseline-A (Single-LLM)": [
+      {
+        "report_id": "EVAL-20260925-144304-814217",
+        "incident_id": "INC-001",
+        "system_name": "Baseline-A (Single-LLM)",
+        "timestamp": "2026-09-25T14:43:04.723029Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "category_match",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "slow_database_query",
+            "regression_type": "unindexed_sequential_scan"
+          },
+          "explanation": "Correctly identified root cause (category_match, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:abc12348",
+              "version:v4.2.1"
+            ],
+            "ground_truth_commit": "abc12348f9",
+            "ground_truth_version": "v4.2.1"
+          },
+          "explanation": "Accurately attributed to commit:abc12348, version:v4.2.1"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:postgresql"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "postgresql"
+          },
+          "explanation": "Identified service:checkout-api, component:postgresql"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matched_expected": [
+              "increased_checkout_latency",
+              "increased_db_latency",
+              "commit_abc123",
+              "deployment_v4.2.1"
+            ],
+            "missing_expected": [],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 4/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 4,
+            "total_cited": 4
+          },
+          "explanation": "4/4 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 1.0,
+        "latency_seconds": 0.0,
+        "token_usage": {
+          "prompt_tokens": 422,
+          "completion_tokens": 103,
+          "total_tokens": 525
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-001",
+          "root_cause": "Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "commit abc12348f9 (deployment v4.2.1)",
+          "affected_service": "checkout-api",
+          "explanation": "Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.95,
+          "recommended_fix": "Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.",
+          "raw_response": "{\n  \"incident_id\": \"INC-001\",\n  \"root_cause\": \"Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1\",\n  \"root_cause_category\": \"slow_database_query\",\n  \"suspected_component\": \"postgresql\",\n  \"introduced_by\": \"commit abc12348f9 (deployment v4.2.1)\",\n  \"affected_service\": \"checkout-api\",\n  \"explanation\": \"Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.\",\n  \"cited_evidence_ids\": [\n    \"EV-DEP-0001\",\n    \"EV-GIT-0001\",\n    \"EV-SPAN-0001\",\n    \"EV-METRIC-0002\"\n  ],\n  \"confidence\": 0.95,\n  \"recommended_fix\": \"Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.\"\n}",
+          "usage_metadata": {
+            "model": "mock-eval-model",
+            "prompt_tokens": 422,
+            "completion_tokens": 103,
+            "total_tokens": 525,
+            "latency_seconds": 0.0,
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Baseline-A (Single-LLM)' on INC-001: Overall Score: 100.0% | Root Cause: 100.0% | Attribution: 100.0% | Evidence Recall: 100.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-90c913",
+        "incident_id": "INC-002",
+        "system_name": "Baseline-A (Single-LLM)",
+        "timestamp": "2026-09-25T14:43:04.724154Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "process_memory_leak",
+            "regression_type": "unbounded_in_memory_cache"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:mem00288"
+            ],
+            "ground_truth_commit": "mem00288ab",
+            "ground_truth_version": "v4.2.2"
+          },
+          "explanation": "Accurately attributed to commit:mem00288"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:python_worker"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "python_worker"
+          },
+          "explanation": "Identified service:checkout-api, component:python_worker"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "deployment_v4.2.2",
+              "commit_mem002",
+              "rss_memory_growth",
+              "oom_restart"
+            ],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 0/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 0.75,
+          "passed": true,
+          "details": {
+            "relevant_count": 3,
+            "total_cited": 4
+          },
+          "explanation": "3/4 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 0.5,
+          "passed": false,
+          "details": {
+            "hallucinated_ids": [
+              "EV-SPAN-0001"
+            ],
+            "count": 1
+          },
+          "explanation": "Cited 1 nonexistent evidence IDs: ['EV-SPAN-0001']"
+        },
+        "overall_score": 0.33,
+        "latency_seconds": 0.0,
+        "token_usage": {
+          "prompt_tokens": 374,
+          "completion_tokens": 103,
+          "total_tokens": 477
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-001",
+          "root_cause": "Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "commit abc12348f9 (deployment v4.2.1)",
+          "affected_service": "checkout-api",
+          "explanation": "Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.95,
+          "recommended_fix": "Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.",
+          "raw_response": "{\n  \"incident_id\": \"INC-001\",\n  \"root_cause\": \"Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1\",\n  \"root_cause_category\": \"slow_database_query\",\n  \"suspected_component\": \"postgresql\",\n  \"introduced_by\": \"commit abc12348f9 (deployment v4.2.1)\",\n  \"affected_service\": \"checkout-api\",\n  \"explanation\": \"Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.\",\n  \"cited_evidence_ids\": [\n    \"EV-DEP-0001\",\n    \"EV-GIT-0001\",\n    \"EV-SPAN-0001\",\n    \"EV-METRIC-0002\"\n  ],\n  \"confidence\": 0.95,\n  \"recommended_fix\": \"Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.\"\n}",
+          "usage_metadata": {
+            "model": "mock-eval-model",
+            "prompt_tokens": 374,
+            "completion_tokens": 103,
+            "total_tokens": 477,
+            "latency_seconds": 0.0,
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Baseline-A (Single-LLM)' on INC-002: Overall Score: 33.0% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 1"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-bdf38b",
+        "incident_id": "INC-003",
+        "system_name": "Baseline-A (Single-LLM)",
+        "timestamp": "2026-09-25T14:43:04.725740Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "third_party_gateway_timeout",
+            "regression_type": "third_party_gateway_degradation"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:"
+            ],
+            "ground_truth_commit": "",
+            "ground_truth_version": ""
+          },
+          "explanation": "Accurately attributed to commit:"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 0.4,
+          "passed": false,
+          "details": {
+            "matches": [
+              "component:external_stripe_mock"
+            ],
+            "expected_service": "payment-gateway",
+            "expected_component": "external_stripe_mock"
+          },
+          "explanation": "Identified component:external_stripe_mock"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "outbound_http_latency",
+              "http_504_gateway_timeout",
+              "payment_failure_count"
+            ],
+            "total_expected": 3
+          },
+          "explanation": "Uncovered 0/3 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 0.5,
+          "passed": false,
+          "details": {
+            "relevant_count": 2,
+            "total_cited": 4
+          },
+          "explanation": "2/4 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "hallucinated_ids": [
+              "EV-DEP-0001",
+              "EV-GIT-0001"
+            ],
+            "count": 2
+          },
+          "explanation": "Cited 2 nonexistent evidence IDs: ['EV-DEP-0001', 'EV-GIT-0001']"
+        },
+        "overall_score": 0.0,
+        "latency_seconds": 0.0,
+        "token_usage": {
+          "prompt_tokens": 337,
+          "completion_tokens": 103,
+          "total_tokens": 440
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-001",
+          "root_cause": "Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "commit abc12348f9 (deployment v4.2.1)",
+          "affected_service": "checkout-api",
+          "explanation": "Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.95,
+          "recommended_fix": "Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.",
+          "raw_response": "{\n  \"incident_id\": \"INC-001\",\n  \"root_cause\": \"Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1\",\n  \"root_cause_category\": \"slow_database_query\",\n  \"suspected_component\": \"postgresql\",\n  \"introduced_by\": \"commit abc12348f9 (deployment v4.2.1)\",\n  \"affected_service\": \"checkout-api\",\n  \"explanation\": \"Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.\",\n  \"cited_evidence_ids\": [\n    \"EV-DEP-0001\",\n    \"EV-GIT-0001\",\n    \"EV-SPAN-0001\",\n    \"EV-METRIC-0002\"\n  ],\n  \"confidence\": 0.95,\n  \"recommended_fix\": \"Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.\"\n}",
+          "usage_metadata": {
+            "model": "mock-eval-model",
+            "prompt_tokens": 337,
+            "completion_tokens": 103,
+            "total_tokens": 440,
+            "latency_seconds": 0.0,
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Baseline-A (Single-LLM)' on INC-003: Overall Score: 0.0% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 2"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-1a5233",
+        "incident_id": "INC-004",
+        "system_name": "Baseline-A (Single-LLM)",
+        "timestamp": "2026-09-25T14:43:04.726577Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "missing_database_column",
+            "regression_type": "code_ahead_of_migration"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:bad00411"
+            ],
+            "ground_truth_commit": "bad00411cd",
+            "ground_truth_version": "v4.2.3"
+          },
+          "explanation": "Accurately attributed to commit:bad00411"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:postgresql_schema"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "postgresql_schema"
+          },
+          "explanation": "Identified service:checkout-api, component:postgresql_schema"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "deployment_v4.2.3",
+              "commit_bad004",
+              "undefined_column_error",
+              "http_500_spike"
+            ],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 0/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 0.5,
+          "passed": false,
+          "details": {
+            "relevant_count": 2,
+            "total_cited": 4
+          },
+          "explanation": "2/4 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "hallucinated_ids": [
+              "EV-SPAN-0001",
+              "EV-METRIC-0002"
+            ],
+            "count": 2
+          },
+          "explanation": "Cited 2 nonexistent evidence IDs: ['EV-SPAN-0001', 'EV-METRIC-0002']"
+        },
+        "overall_score": 0.0,
+        "latency_seconds": 0.0,
+        "token_usage": {
+          "prompt_tokens": 329,
+          "completion_tokens": 103,
+          "total_tokens": 432
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-001",
+          "root_cause": "Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "commit abc12348f9 (deployment v4.2.1)",
+          "affected_service": "checkout-api",
+          "explanation": "Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.95,
+          "recommended_fix": "Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.",
+          "raw_response": "{\n  \"incident_id\": \"INC-001\",\n  \"root_cause\": \"Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1\",\n  \"root_cause_category\": \"slow_database_query\",\n  \"suspected_component\": \"postgresql\",\n  \"introduced_by\": \"commit abc12348f9 (deployment v4.2.1)\",\n  \"affected_service\": \"checkout-api\",\n  \"explanation\": \"Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.\",\n  \"cited_evidence_ids\": [\n    \"EV-DEP-0001\",\n    \"EV-GIT-0001\",\n    \"EV-SPAN-0001\",\n    \"EV-METRIC-0002\"\n  ],\n  \"confidence\": 0.95,\n  \"recommended_fix\": \"Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.\"\n}",
+          "usage_metadata": {
+            "model": "mock-eval-model",
+            "prompt_tokens": 329,
+            "completion_tokens": 103,
+            "total_tokens": 432,
+            "latency_seconds": 0.0,
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Baseline-A (Single-LLM)' on INC-004: Overall Score: 0.0% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 2"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-49d57d",
+        "incident_id": "INC-005",
+        "system_name": "Baseline-A (Single-LLM)",
+        "timestamp": "2026-09-25T14:43:04.727647Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "pool_size_misconfiguration",
+            "regression_type": "pool_size_throttled"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:cfg00522"
+            ],
+            "ground_truth_commit": "cfg00522ee",
+            "ground_truth_version": ""
+          },
+          "explanation": "Accurately attributed to commit:cfg00522"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:database_connection_pool"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "database_connection_pool"
+          },
+          "explanation": "Identified service:checkout-api, component:database_connection_pool"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "config_change_pool_size",
+              "pool_timeout_errors",
+              "thread_contention"
+            ],
+            "total_expected": 3
+          },
+          "explanation": "Uncovered 0/3 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 0.75,
+          "passed": true,
+          "details": {
+            "relevant_count": 3,
+            "total_cited": 4
+          },
+          "explanation": "3/4 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 0.5,
+          "passed": false,
+          "details": {
+            "hallucinated_ids": [
+              "EV-METRIC-0002"
+            ],
+            "count": 1
+          },
+          "explanation": "Cited 1 nonexistent evidence IDs: ['EV-METRIC-0002']"
+        },
+        "overall_score": 0.33,
+        "latency_seconds": 0.0001,
+        "token_usage": {
+          "prompt_tokens": 373,
+          "completion_tokens": 103,
+          "total_tokens": 476
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-001",
+          "root_cause": "Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "commit abc12348f9 (deployment v4.2.1)",
+          "affected_service": "checkout-api",
+          "explanation": "Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.95,
+          "recommended_fix": "Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.",
+          "raw_response": "{\n  \"incident_id\": \"INC-001\",\n  \"root_cause\": \"Database query performance regression due to unindexed sort on the orders table introduced in release v4.2.1\",\n  \"root_cause_category\": \"slow_database_query\",\n  \"suspected_component\": \"postgresql\",\n  \"introduced_by\": \"commit abc12348f9 (deployment v4.2.1)\",\n  \"affected_service\": \"checkout-api\",\n  \"explanation\": \"Deployment v4.2.1 introduced commit abc12348f9 which modified the orders lookup query in checkout-api to sort by updated_at without an index. This caused PostgreSQL to perform a full sequential scan on the orders table, driving query duration to ~1500ms and causing GET /api/orders latency to breach the SLA.\",\n  \"cited_evidence_ids\": [\n    \"EV-DEP-0001\",\n    \"EV-GIT-0001\",\n    \"EV-SPAN-0001\",\n    \"EV-METRIC-0002\"\n  ],\n  \"confidence\": 0.95,\n  \"recommended_fix\": \"Add an index on orders(created_at, user_id) or rollback deployment v4.2.1 (commit abc12348f9) immediately.\"\n}",
+          "usage_metadata": {
+            "model": "mock-eval-model",
+            "prompt_tokens": 373,
+            "completion_tokens": 103,
+            "total_tokens": 476,
+            "latency_seconds": 0.0001,
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Baseline-A (Single-LLM)' on INC-005: Overall Score: 33.0% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 1"
+      }
+    ],
+    "Baseline-B (2-Agent)": [
+      {
+        "report_id": "EVAL-20260925-144304-2920ff",
+        "incident_id": "INC-001",
+        "system_name": "Baseline-B (2-Agent)",
+        "timestamp": "2026-09-25T14:43:04.728178Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "category_match",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "slow_database_query",
+            "regression_type": "unindexed_sequential_scan"
+          },
+          "explanation": "Correctly identified root cause (category_match, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:abc12348",
+              "version:v4.2.1"
+            ],
+            "ground_truth_commit": "abc12348f9",
+            "ground_truth_version": "v4.2.1"
+          },
+          "explanation": "Accurately attributed to commit:abc12348, version:v4.2.1"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:postgresql"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "postgresql"
+          },
+          "explanation": "Identified service:checkout-api, component:postgresql"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matched_expected": [
+              "increased_checkout_latency",
+              "increased_db_latency",
+              "commit_abc123",
+              "deployment_v4.2.1"
+            ],
+            "missing_expected": [],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 4/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 4,
+            "total_cited": 4
+          },
+          "explanation": "4/4 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 1.0,
+        "latency_seconds": 0.0002,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-001",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "checkout-api",
+          "explanation": "Analyst top hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. (Unverified by Verifier; contradictions not challenged).",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Inspect affected components and test resolution.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0002,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst"
+            ],
+            "total_hypotheses_generated": 3
+          }
+        },
+        "summary": "Evaluated 'Baseline-B (2-Agent)' on INC-001: Overall Score: 100.0% | Root Cause: 100.0% | Attribution: 100.0% | Evidence Recall: 100.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-37e12f",
+        "incident_id": "INC-002",
+        "system_name": "Baseline-B (2-Agent)",
+        "timestamp": "2026-09-25T14:43:04.728691Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "process_memory_leak",
+            "regression_type": "unbounded_in_memory_cache"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:mem00288"
+            ],
+            "ground_truth_commit": "mem00288ab",
+            "ground_truth_version": "v4.2.2"
+          },
+          "explanation": "Accurately attributed to commit:mem00288"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 0.4,
+          "passed": false,
+          "details": {
+            "matches": [
+              "component:python_worker"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "python_worker"
+          },
+          "explanation": "Identified component:python_worker"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "deployment_v4.2.2",
+              "commit_mem002",
+              "rss_memory_growth",
+              "oom_restart"
+            ],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 0/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 2,
+            "total_cited": 2
+          },
+          "explanation": "2/2 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 0.595,
+        "latency_seconds": 0.0001,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-002",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "unknown",
+          "explanation": "Analyst top hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. (Unverified by Verifier; contradictions not challenged).",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Inspect affected components and test resolution.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0001,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst"
+            ],
+            "total_hypotheses_generated": 3
+          }
+        },
+        "summary": "Evaluated 'Baseline-B (2-Agent)' on INC-002: Overall Score: 59.5% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-e7144e",
+        "incident_id": "INC-003",
+        "system_name": "Baseline-B (2-Agent)",
+        "timestamp": "2026-09-25T14:43:04.729839Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "third_party_gateway_timeout",
+            "regression_type": "third_party_gateway_degradation"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:"
+            ],
+            "ground_truth_commit": "",
+            "ground_truth_version": ""
+          },
+          "explanation": "Accurately attributed to commit:"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 0.4,
+          "passed": false,
+          "details": {
+            "matches": [
+              "component:external_stripe_mock"
+            ],
+            "expected_service": "payment-gateway",
+            "expected_component": "external_stripe_mock"
+          },
+          "explanation": "Identified component:external_stripe_mock"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "outbound_http_latency",
+              "http_504_gateway_timeout",
+              "payment_failure_count"
+            ],
+            "total_expected": 3
+          },
+          "explanation": "Uncovered 0/3 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 2,
+            "total_cited": 2
+          },
+          "explanation": "2/2 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 0.595,
+        "latency_seconds": 0.0001,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-003",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "unknown",
+          "explanation": "Analyst top hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. (Unverified by Verifier; contradictions not challenged).",
+          "cited_evidence_ids": [
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Inspect affected components and test resolution.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0001,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst"
+            ],
+            "total_hypotheses_generated": 3
+          }
+        },
+        "summary": "Evaluated 'Baseline-B (2-Agent)' on INC-003: Overall Score: 59.5% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-c4b570",
+        "incident_id": "INC-004",
+        "system_name": "Baseline-B (2-Agent)",
+        "timestamp": "2026-09-25T14:43:04.730387Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "missing_database_column",
+            "regression_type": "code_ahead_of_migration"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:bad00411"
+            ],
+            "ground_truth_commit": "bad00411cd",
+            "ground_truth_version": "v4.2.3"
+          },
+          "explanation": "Accurately attributed to commit:bad00411"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 0.4,
+          "passed": false,
+          "details": {
+            "matches": [
+              "component:postgresql_schema"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "postgresql_schema"
+          },
+          "explanation": "Identified component:postgresql_schema"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "deployment_v4.2.3",
+              "commit_bad004",
+              "undefined_column_error",
+              "http_500_spike"
+            ],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 0/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 2,
+            "total_cited": 2
+          },
+          "explanation": "2/2 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 0.595,
+        "latency_seconds": 0.0001,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-004",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "unknown",
+          "explanation": "Analyst top hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. (Unverified by Verifier; contradictions not challenged).",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Inspect affected components and test resolution.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0001,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst"
+            ],
+            "total_hypotheses_generated": 3
+          }
+        },
+        "summary": "Evaluated 'Baseline-B (2-Agent)' on INC-004: Overall Score: 59.5% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-23ce10",
+        "incident_id": "INC-005",
+        "system_name": "Baseline-B (2-Agent)",
+        "timestamp": "2026-09-25T14:43:04.731504Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "pool_size_misconfiguration",
+            "regression_type": "pool_size_throttled"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:cfg00522"
+            ],
+            "ground_truth_commit": "cfg00522ee",
+            "ground_truth_version": ""
+          },
+          "explanation": "Accurately attributed to commit:cfg00522"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 0.4,
+          "passed": false,
+          "details": {
+            "matches": [
+              "component:database_connection_pool"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "database_connection_pool"
+          },
+          "explanation": "Identified component:database_connection_pool"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "config_change_pool_size",
+              "pool_timeout_errors",
+              "thread_contention"
+            ],
+            "total_expected": 3
+          },
+          "explanation": "Uncovered 0/3 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 3,
+            "total_cited": 3
+          },
+          "explanation": "3/3 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 0.595,
+        "latency_seconds": 0.0001,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-005",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "unknown",
+          "explanation": "Analyst top hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. (Unverified by Verifier; contradictions not challenged).",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Inspect affected components and test resolution.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0001,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst"
+            ],
+            "total_hypotheses_generated": 3
+          }
+        },
+        "summary": "Evaluated 'Baseline-B (2-Agent)' on INC-005: Overall Score: 59.5% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+      }
+    ],
+    "Aletheia (3-Agent)": [
+      {
+        "report_id": "EVAL-20260925-144304-7284b6",
+        "incident_id": "INC-001",
+        "system_name": "Aletheia (3-Agent)",
+        "timestamp": "2026-09-25T14:43:04.736064Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "category_match",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "slow_database_query",
+            "regression_type": "unindexed_sequential_scan"
+          },
+          "explanation": "Correctly identified root cause (category_match, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:abc12348",
+              "version:v4.2.1"
+            ],
+            "ground_truth_commit": "abc12348f9",
+            "ground_truth_version": "v4.2.1"
+          },
+          "explanation": "Accurately attributed to commit:abc12348, version:v4.2.1"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:postgresql"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "postgresql"
+          },
+          "explanation": "Identified service:checkout-api, component:postgresql"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matched_expected": [
+              "increased_checkout_latency",
+              "increased_db_latency",
+              "commit_abc123",
+              "deployment_v4.2.1"
+            ],
+            "missing_expected": [],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 4/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 4,
+            "total_cited": 4
+          },
+          "explanation": "4/4 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 1.0,
+        "latency_seconds": 0.0048,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-001",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "checkout-api",
+          "explanation": "Verified Hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. Supported by evidence IDs: ['EV-DEP-0001', 'EV-GIT-0001', 'EV-SPAN-0001', 'EV-METRIC-0002']. Passed temporal ordering and causal verification.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Add database index or rollback suspected release.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0048,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst",
+              "Verifier"
+            ],
+            "execution_trace": [
+              "Investigator: inspecting evidence graph and timeline",
+              "Analyst: generating hypotheses and mapping supporting/contradicting evidence",
+              "Verifier: auditing temporal ordering, causal claims, and contradictions",
+              "Verifier verdict: 'verified'"
+            ],
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Aletheia (3-Agent)' on INC-001: Overall Score: 100.0% | Root Cause: 100.0% | Attribution: 100.0% | Evidence Recall: 100.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-19b5e5",
+        "incident_id": "INC-002",
+        "system_name": "Aletheia (3-Agent)",
+        "timestamp": "2026-09-25T14:43:04.737567Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "process_memory_leak",
+            "regression_type": "unbounded_in_memory_cache"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:mem00288"
+            ],
+            "ground_truth_commit": "mem00288ab",
+            "ground_truth_version": "v4.2.2"
+          },
+          "explanation": "Accurately attributed to commit:mem00288"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:python_worker"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "python_worker"
+          },
+          "explanation": "Identified service:checkout-api, component:python_worker"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "deployment_v4.2.2",
+              "commit_mem002",
+              "rss_memory_growth",
+              "oom_restart"
+            ],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 0/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 2,
+            "total_cited": 2
+          },
+          "explanation": "2/2 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 0.685,
+        "latency_seconds": 0.0012,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-002",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "checkout-api",
+          "explanation": "Verified Hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. Supported by evidence IDs: ['EV-DEP-0001', 'EV-GIT-0001']. Passed temporal ordering and causal verification.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Add database index or rollback suspected release.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0012,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst",
+              "Verifier"
+            ],
+            "execution_trace": [
+              "Investigator: inspecting evidence graph and timeline",
+              "Analyst: generating hypotheses and mapping supporting/contradicting evidence",
+              "Verifier: auditing temporal ordering, causal claims, and contradictions",
+              "Verifier verdict: 'verified'"
+            ],
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Aletheia (3-Agent)' on INC-002: Overall Score: 68.5% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-fe9d1c",
+        "incident_id": "INC-003",
+        "system_name": "Aletheia (3-Agent)",
+        "timestamp": "2026-09-25T14:43:04.740077Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "third_party_gateway_timeout",
+            "regression_type": "third_party_gateway_degradation"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:"
+            ],
+            "ground_truth_commit": "",
+            "ground_truth_version": ""
+          },
+          "explanation": "Accurately attributed to commit:"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 0.4,
+          "passed": false,
+          "details": {
+            "matches": [
+              "component:external_stripe_mock"
+            ],
+            "expected_service": "payment-gateway",
+            "expected_component": "external_stripe_mock"
+          },
+          "explanation": "Identified component:external_stripe_mock"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "outbound_http_latency",
+              "http_504_gateway_timeout",
+              "payment_failure_count"
+            ],
+            "total_expected": 3
+          },
+          "explanation": "Uncovered 0/3 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 2,
+            "total_cited": 2
+          },
+          "explanation": "2/2 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 0.595,
+        "latency_seconds": 0.0011,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-003",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "checkout-api",
+          "explanation": "Verified Hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. Supported by evidence IDs: ['EV-SPAN-0001', 'EV-METRIC-0002']. Passed temporal ordering and causal verification.",
+          "cited_evidence_ids": [
+            "EV-SPAN-0001",
+            "EV-METRIC-0002"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Add database index or rollback suspected release.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0011,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst",
+              "Verifier"
+            ],
+            "execution_trace": [
+              "Investigator: inspecting evidence graph and timeline",
+              "Analyst: generating hypotheses and mapping supporting/contradicting evidence",
+              "Verifier: auditing temporal ordering, causal claims, and contradictions",
+              "Verifier verdict: 'verified'"
+            ],
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Aletheia (3-Agent)' on INC-003: Overall Score: 59.5% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-90d65d",
+        "incident_id": "INC-004",
+        "system_name": "Aletheia (3-Agent)",
+        "timestamp": "2026-09-25T14:43:04.741588Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "missing_database_column",
+            "regression_type": "code_ahead_of_migration"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:bad00411"
+            ],
+            "ground_truth_commit": "bad00411cd",
+            "ground_truth_version": "v4.2.3"
+          },
+          "explanation": "Accurately attributed to commit:bad00411"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:postgresql_schema"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "postgresql_schema"
+          },
+          "explanation": "Identified service:checkout-api, component:postgresql_schema"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "deployment_v4.2.3",
+              "commit_bad004",
+              "undefined_column_error",
+              "http_500_spike"
+            ],
+            "total_expected": 4
+          },
+          "explanation": "Uncovered 0/4 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 2,
+            "total_cited": 2
+          },
+          "explanation": "2/2 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 0.685,
+        "latency_seconds": 0.0013,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-004",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "checkout-api",
+          "explanation": "Verified Hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. Supported by evidence IDs: ['EV-DEP-0001', 'EV-GIT-0001']. Passed temporal ordering and causal verification.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Add database index or rollback suspected release.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0013,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst",
+              "Verifier"
+            ],
+            "execution_trace": [
+              "Investigator: inspecting evidence graph and timeline",
+              "Analyst: generating hypotheses and mapping supporting/contradicting evidence",
+              "Verifier: auditing temporal ordering, causal claims, and contradictions",
+              "Verifier verdict: 'verified'"
+            ],
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Aletheia (3-Agent)' on INC-004: Overall Score: 68.5% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+      },
+      {
+        "report_id": "EVAL-20260925-144304-ba32cc",
+        "incident_id": "INC-005",
+        "system_name": "Aletheia (3-Agent)",
+        "timestamp": "2026-09-25T14:43:04.744105Z",
+        "root_cause_score": {
+          "metric_name": "root_cause_accuracy",
+          "score": 0.9,
+          "passed": true,
+          "details": {
+            "matches": [
+              "query_latency_mentioned",
+              "regression_mechanism_identified"
+            ],
+            "ground_truth_cause": "pool_size_misconfiguration",
+            "regression_type": "pool_size_throttled"
+          },
+          "explanation": "Correctly identified root cause (query_latency_mentioned, regression_mechanism_identified)"
+        },
+        "introduced_by_score": {
+          "metric_name": "introduced_by_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": {
+            "matches": [
+              "commit:cfg00522"
+            ],
+            "ground_truth_commit": "cfg00522ee",
+            "ground_truth_version": ""
+          },
+          "explanation": "Accurately attributed to commit:cfg00522"
+        },
+        "service_score": {
+          "metric_name": "service_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "matches": [
+              "service:checkout-api",
+              "component:database_connection_pool"
+            ],
+            "expected_service": "checkout-api",
+            "expected_component": "database_connection_pool"
+          },
+          "explanation": "Identified service:checkout-api, component:database_connection_pool"
+        },
+        "evidence_recall_score": {
+          "metric_name": "evidence_recall",
+          "score": 0.0,
+          "passed": false,
+          "details": {
+            "matched_expected": [],
+            "missing_expected": [
+              "config_change_pool_size",
+              "pool_timeout_errors",
+              "thread_contention"
+            ],
+            "total_expected": 3
+          },
+          "explanation": "Uncovered 0/3 expected evidence items."
+        },
+        "evidence_precision_score": {
+          "metric_name": "evidence_precision",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "relevant_count": 3,
+            "total_cited": 3
+          },
+          "explanation": "3/3 cited evidence items were relevant."
+        },
+        "hallucination_score": {
+          "metric_name": "evidence_hallucination",
+          "score": 1.0,
+          "passed": true,
+          "details": {
+            "hallucinated_ids": [],
+            "count": 0
+          },
+          "explanation": "No hallucinated evidence IDs cited."
+        },
+        "overall_score": 0.685,
+        "latency_seconds": 0.0013,
+        "token_usage": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0
+        },
+        "estimated_cost_usd": 0.0,
+        "diagnosis": {
+          "incident_id": "INC-005",
+          "root_cause": "Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach.",
+          "root_cause_category": "slow_database_query",
+          "suspected_component": "postgresql",
+          "introduced_by": "deployment v4.2.1 / commit abc12348f9",
+          "affected_service": "checkout-api",
+          "explanation": "Verified Hypothesis HYP-001: Database query execution latency spiked due to an unindexed query sort introduced in the latest deployment and git commit, causing checkout API latency breach. Supported by evidence IDs: ['EV-DEP-0001', 'EV-GIT-0001', 'EV-SPAN-0001']. Passed temporal ordering and causal verification.",
+          "cited_evidence_ids": [
+            "EV-DEP-0001",
+            "EV-GIT-0001",
+            "EV-SPAN-0001"
+          ],
+          "confidence": 0.9,
+          "recommended_fix": "Add database index or rollback suspected release.",
+          "raw_response": null,
+          "usage_metadata": {
+            "latency_seconds": 0.0013,
+            "agent_pipeline": [
+              "Investigator",
+              "Analyst",
+              "Verifier"
+            ],
+            "execution_trace": [
+              "Investigator: inspecting evidence graph and timeline",
+              "Analyst: generating hypotheses and mapping supporting/contradicting evidence",
+              "Verifier: auditing temporal ordering, causal claims, and contradictions",
+              "Verifier verdict: 'verified'"
+            ],
+            "estimated_cost_usd": 0.0
+          }
+        },
+        "summary": "Evaluated 'Aletheia (3-Agent)' on INC-005: Overall Score: 68.5% | Root Cause: 90.0% | Attribution: 60.0% | Evidence Recall: 0.0% | Hallucinations: 0"
+      }
+    ]
+  },
+  "comparative_summary": "Evaluated 5 incidents across 3 systems. Aletheia 3-Agent achieved 73.0% overall score with 0.0% hallucinations."
+}

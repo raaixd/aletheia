@@ -1,0 +1,18 @@
+{
+  "incident_id": "INC-019",
+  "name": "certificate_expiration",
+  "root_cause": "expired_mtls_client_certificate",
+  "introduced_by": "automated_cert_renewal_cron_failure",
+  "affected_service": "inventory-api",
+  "start_time": "2026-09-25T20:00:00Z",
+  "expected_evidence": [
+    "ssl_cert_expired_error",
+    "handshake_failure_log",
+    "inventory_rpc_timeout"
+  ],
+  "ground_truth_details": {
+    "component": "tls_handshake",
+    "regression_type": "ssl_certificate_verification_failed",
+    "expired_at": "2026-09-25T19:59:59Z"
+  }
+}

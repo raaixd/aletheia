@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-004",
+  "name": "Release Missing Database Schema Column",
+  "description": "Code deployed querying newly introduced column tax_jurisdiction_code before database migration was applied.",
+  "target_service": "checkout-api",
+  "injection_point": "orm_order_mapping",
+  "default_parameters": {
+    "error_type": "UndefinedColumn"
+  }
+}

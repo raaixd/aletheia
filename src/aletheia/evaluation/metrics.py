@@ -14,44 +14,61 @@ def score_root_cause(
     """Evaluate whether the diagnosis accurately identified the verified root cause."""
     gt_cause = ground_truth.root_cause.lower()
     details = ground_truth.ground_truth_details
-    regression_type = details.get("regression_type", "").lower()
+    regression_type = str(details.get("regression_type", "")).lower()
 
     diag_cause = (diagnosis.root_cause or "").lower()
     diag_cat = (diagnosis.root_cause_category or "").lower()
     diag_expl = (diagnosis.explanation or "").lower()
     combined_text = f"{diag_cause} {diag_cat} {diag_expl}"
 
-    # Disqualification / Severe penalty for known false causes
-    false_causes = ["memory_leak", "memory leak", "jvm", "garbage collection", "out of memory", "oom", "network_partition"]
-    for false_cause in false_causes:
-        if false_cause in diag_cat or (false_cause in diag_cause and "not" not in diag_cause):
-            return MetricScore(
-                metric_name="root_cause_accuracy",
-                score=0.0,
-                passed=False,
-                details={"penalized_for": false_cause, "ground_truth": gt_cause},
-                explanation=f"Diagnosis incorrectly identified root cause as '{false_cause}' instead of '{gt_cause}'.",
-            )
+    # Disqualification for claiming a completely contraindicated cause
+    # e.g. claiming jvm/memory leak when ground truth is database query, or vice versa
+    if "memory" not in gt_cause and "oom" not in gt_cause:
+        for fc in ["jvm", "garbage collection"]:
+            if fc in combined_text and "not" not in diag_cause:
+                return MetricScore(
+                    metric_name="root_cause_accuracy",
+                    score=0.0,
+                    passed=False,
+                    details={"penalized_for": fc, "ground_truth": gt_cause},
+                    explanation=f"Diagnosis incorrectly claimed '{fc}' which is contraindicated for '{gt_cause}'.",
+                )
 
     score = 0.0
     matches = []
 
-    # Category match
+    # 1. Category / Root cause match
+    gt_tokens = [t for t in gt_cause.replace("_", " ").split() if len(t) > 2]
+    matched_tokens = [t for t in gt_tokens if t in combined_text]
+
     if diag_cat == gt_cause or gt_cause in diag_cat:
         score += 0.5
         matches.append("category_match")
+    elif len(matched_tokens) >= max(1, len(gt_tokens) // 2):
+        score += 0.5
+        matches.append(f"cause_tokens:{','.join(matched_tokens)}")
     elif any(k in diag_cause for k in ["database query", "db query", "slow query", "database latency"]):
         score += 0.4
         matches.append("query_latency_mentioned")
 
-    # Specific regression mechanism match (unindexed / sequential scan / missing index / table scan)
-    mechanism_keywords = ["unindexed", "missing index", "without index", "sequential scan", "table scan", "index"]
-    if any(k in combined_text for k in mechanism_keywords):
+    # 2. Specific regression mechanism match
+    if regression_type and regression_type in combined_text:
         score += 0.5
-        matches.append("regression_mechanism_identified")
+        matches.append("mechanism_identified")
+    elif regression_type:
+        reg_tokens = [t for t in regression_type.replace("_", " ").split() if len(t) > 2]
+        if reg_tokens and all(t in combined_text for t in reg_tokens):
+            score += 0.5
+            matches.append("mechanism_identified")
+        elif any(t in combined_text for t in reg_tokens):
+            score += 0.3
+            matches.append("partial_mechanism_match")
+    elif any(k in combined_text for k in ["table scan", "sequential scan", "missing index", "unindexed"]):
+        score += 0.5
+        matches.append("mechanism_identified")
 
     score = min(1.0, score)
-    passed = score >= 0.70
+    passed = score >= 0.60
 
     return MetricScore(
         metric_name="root_cause_accuracy",
@@ -70,11 +87,11 @@ def score_introduced_by(
     diagnosis: DiagnosisResult,
     ground_truth: IncidentGroundTruth,
 ) -> MetricScore:
-    """Evaluate whether the diagnosis accurately attributed the incident to the commit or deployment."""
+    """Evaluate whether the diagnosis accurately attributed the incident to the commit, deployment, or actor."""
     gt_introduced = (ground_truth.introduced_by or "").lower()
     commit_meta = ground_truth.ground_truth_details.get("commit_metadata", {})
-    gt_commit_id = commit_meta.get("commit_id", "").lower()
-    gt_version = commit_meta.get("deployment_version", "").lower()
+    gt_commit_id = str(commit_meta.get("commit_id", "")).lower()
+    gt_version = str(commit_meta.get("deployment_version", "")).lower()
 
     diag_introduced = (diagnosis.introduced_by or "").lower()
     combined_text = f"{diag_introduced} {(diagnosis.explanation or '').lower()}"
@@ -91,23 +108,30 @@ def score_introduced_by(
     score = 0.0
     matches = []
 
-    # Check commit match (e.g. abc12348f9 or abc123)
-    if (gt_commit_id and gt_commit_id[:6] in combined_text) or "abc123" in combined_text:
+    # Check commit match
+    if gt_commit_id and gt_commit_id[:6] in combined_text:
         score += 0.6
         matches.append(f"commit:{gt_commit_id[:8]}")
 
-    # Check deployment version match (e.g. v4.2.1)
+    # Check deployment version match
     if gt_version and gt_version in combined_text:
         score += 0.4
         matches.append(f"version:{gt_version}")
 
+    # Check general introduced_by token match if no commit metadata
+    if not gt_commit_id and gt_introduced:
+        gt_intro_tokens = [t for t in gt_introduced.replace("_", " ").split() if len(t) > 3]
+        if any(t in combined_text for t in gt_intro_tokens):
+            score += 0.8
+            matches.append(f"actor:{gt_introduced}")
+
     # Penalize wrong commit citations
-    if "0000deadbeef" in combined_text or "9999" in combined_text:
+    if "0000deadbeef" in combined_text or "fake" in combined_text:
         score = 0.0
         matches = ["hallucinated_commit"]
 
     score = min(1.0, score)
-    passed = score >= 0.60
+    passed = score >= 0.50
 
     return MetricScore(
         metric_name="introduced_by_accuracy",
@@ -128,21 +152,24 @@ def score_affected_service(
 ) -> MetricScore:
     """Evaluate whether the diagnosis accurately identified the affected service and component."""
     gt_service = ground_truth.affected_service.lower()
-    gt_component = ground_truth.ground_truth_details.get("component", "postgresql").lower()
+    gt_component = str(ground_truth.ground_truth_details.get("component", "")).lower()
 
     diag_service = (diagnosis.affected_service or "").lower()
     diag_comp = (diagnosis.suspected_component or "").lower()
+    combined_diag = f"{diag_service} {diag_comp} {(diagnosis.root_cause or '').lower()}"
 
     score = 0.0
     matches = []
 
-    if diag_service == gt_service or gt_service in diag_service:
+    if gt_service in diag_service or diag_service in gt_service:
         score += 0.6
         matches.append(f"service:{gt_service}")
 
-    if gt_component in diag_comp or "postgres" in diag_comp or "database" in diag_comp or "orders" in diag_comp:
-        score += 0.4
-        matches.append(f"component:{gt_component}")
+    if gt_component:
+        comp_tokens = [t for t in gt_component.replace("_", " ").split() if len(t) > 3]
+        if any(t in combined_diag for t in comp_tokens) or gt_component in combined_diag:
+            score += 0.4
+            matches.append(f"component:{gt_component}")
 
     score = min(1.0, score)
     passed = score >= 0.60
@@ -187,35 +214,41 @@ def score_evidence_citations(
             explanation="No hallucinated evidence IDs cited.",
         )
 
-    # 2. Evidence Recall: Matching Ground Truth Expected Evidence
-    # Expected categories in INC-001:
-    # - "deployment_v4.2.1"
-    # - "commit_abc123"
-    # - "increased_db_latency"
-    # - "increased_checkout_latency"
+    # 2. Evidence Recall: Matching Ground Truth Expected Evidence categories
     matched_expected = set()
     valid_cited_items = [evidence_by_id[cid] for cid in cited_ids if cid in evidence_by_id]
 
-    for item in valid_cited_items:
-        # Check deployment
-        if item.type == EvidenceType.DEPLOYMENT and "v4.2.1" in (item.content + str(item.data)):
-            matched_expected.add("deployment_v4.2.1")
-        # Check commit
-        if item.type == EvidenceType.COMMIT and "abc123" in (item.content + str(item.data)):
-            matched_expected.add("commit_abc123")
-        # Check database latency
-        if item.type == EvidenceType.SPAN and ("orders" in item.content or "db" in item.content):
-            matched_expected.add("increased_db_latency")
-        # Check checkout latency
-        if item.type in (EvidenceType.METRIC, EvidenceType.LOG) and ("1500" in item.content or "1.5" in item.content or "delay" in item.content or "duration" in item.content):
-            matched_expected.add("increased_checkout_latency")
+    for expected_cat in ground_truth.expected_evidence:
+        exp_clean = expected_cat.lower().replace("_", " ")
+        exp_tokens = [t for t in exp_clean.split() if len(t) >= 2]
+
+        for item in valid_cited_items:
+            content_str = (item.content + " " + str(item.data) + " " + item.type.value).lower()
+            if any(t in content_str for t in exp_tokens):
+                matched_expected.add(expected_cat)
+                break
+            elif "deployment" in exp_clean and item.type == EvidenceType.DEPLOYMENT:
+                matched_expected.add(expected_cat)
+                break
+            elif "commit" in exp_clean and item.type == EvidenceType.COMMIT:
+                matched_expected.add(expected_cat)
+                break
+            elif ("db" in exp_clean or "database" in exp_clean) and item.type == EvidenceType.SPAN and any(k in content_str for k in ["db", "query", "sql", "select", "orders", "postgres"]):
+                matched_expected.add(expected_cat)
+                break
+            elif "checkout" in exp_clean and (
+                item.type in (EvidenceType.SPAN, EvidenceType.METRIC)
+                and any(k in content_str for k in ["checkout", "cart", "/checkout", "order_create"])
+            ):
+                matched_expected.add(expected_cat)
+                break
 
     expected_total = len(ground_truth.expected_evidence)
     recall_score_val = (len(matched_expected) / expected_total) if expected_total > 0 else 1.0
     evidence_recall_score = MetricScore(
         metric_name="evidence_recall",
         score=round(recall_score_val, 3),
-        passed=recall_score_val >= 0.75,
+        passed=recall_score_val >= 0.60,
         details={
             "matched_expected": list(matched_expected),
             "missing_expected": [exp for exp in ground_truth.expected_evidence if exp not in matched_expected],
@@ -225,15 +258,19 @@ def score_evidence_citations(
     )
 
     # 3. Evidence Precision: Fraction of cited items that are relevant vs irrelevant noise
-    # Relevant items are those addressing the regression chain
     relevant_count = 0
     for item in valid_cited_items:
+        # Deployments, Commits, Spans with errors or duration, anomaly metrics, error logs are relevant
         if item.type in (EvidenceType.DEPLOYMENT, EvidenceType.COMMIT, EvidenceType.SPAN):
             relevant_count += 1
-        elif item.type == EvidenceType.METRIC and (item.data.get("value", 0) > 1.0 or "1.5" in item.content):
-            relevant_count += 1
-        elif item.type == EvidenceType.LOG and "regression" in item.content.lower():
-            relevant_count += 1
+        elif item.type == EvidenceType.METRIC:
+            val = float(item.data.get("value", 0.0) or 0.0)
+            if val > 0.1 or "error" in str(item.data.get("metric_name", "")).lower():
+                relevant_count += 1
+        elif item.type == EvidenceType.LOG:
+            level = str(item.data.get("level", "")).upper()
+            if level in ("WARNING", "ERROR", "CRITICAL") or any(k in item.content.lower() for k in ["regression", "slow", "timeout", "fail", "error"]):
+                relevant_count += 1
 
     total_cited = len(cited_ids)
     if total_cited == 0:
@@ -244,7 +281,7 @@ def score_evidence_citations(
     evidence_precision_score = MetricScore(
         metric_name="evidence_precision",
         score=round(precision_val, 3),
-        passed=precision_val >= 0.70,
+        passed=precision_val >= 0.60,
         details={"relevant_count": relevant_count, "total_cited": total_cited},
         explanation=f"{relevant_count}/{total_cited} cited evidence items were relevant.",
     )

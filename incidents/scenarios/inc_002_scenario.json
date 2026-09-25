@@ -1,0 +1,11 @@
+{
+  "scenario_id": "INC-002",
+  "name": "Unbounded Memory Cache Leak in Checkout Worker",
+  "description": "Memory grows linearly with each checkout request until pod OOM kills occur.",
+  "target_service": "checkout-api",
+  "injection_point": "order_cache_layer",
+  "default_parameters": {
+    "leak_rate_mb_per_req": 2.5,
+    "max_heap_mb": 2048.0
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "incident_id": "INC-009",
+  "name": "simultaneous_failures",
+  "root_cause": "concurrent_gateway_and_cache_outage",
+  "introduced_by": "cloud_network_partition",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T10:00:00Z",
+  "expected_evidence": [
+    "payment_timeout_errors",
+    "redis_connection_refused",
+    "multi_point_sla_breach"
+  ],
+  "ground_truth_details": {
+    "component": "multi_component",
+    "regression_type": "dual_independent_faults",
+    "faults": [
+      "payment_gateway_down",
+      "redis_cache_down"
+    ]
+  }
+}

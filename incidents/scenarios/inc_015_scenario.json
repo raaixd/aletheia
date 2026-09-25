@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-015",
+  "name": "Prometheus Metrics Scrape Probe Fails with 503",
+  "description": "Metrics collection endpoint throws 503 Service Unavailable, simulating monitoring tooling failure.",
+  "target_service": "telemetry-agent",
+  "injection_point": "metrics_endpoint",
+  "default_parameters": {
+    "exporter_status": 503
+  }
+}

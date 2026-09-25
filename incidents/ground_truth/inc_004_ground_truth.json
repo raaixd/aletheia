@@ -1,0 +1,25 @@
+{
+  "incident_id": "INC-004",
+  "name": "bad_deployment_schema_mismatch",
+  "root_cause": "missing_database_column",
+  "introduced_by": "deployment_v4.2.3",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T05:00:00Z",
+  "expected_evidence": [
+    "deployment_v4.2.3",
+    "commit_bad004",
+    "undefined_column_error",
+    "http_500_spike"
+  ],
+  "ground_truth_details": {
+    "component": "postgresql_schema",
+    "regression_type": "code_ahead_of_migration",
+    "missing_column": "tax_jurisdiction_code",
+    "commit_metadata": {
+      "commit_id": "bad00411cd",
+      "author": "release.bot@example.com",
+      "message": "feat(tax): query tax_jurisdiction_code before alembic migration execution",
+      "deployment_version": "v4.2.3"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "incident_id": "INC-011",
+  "name": "missing_evidence",
+  "root_cause": "database_deadlock_with_dropped_logs",
+  "introduced_by": "log_collector_buffer_overflow",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T12:00:00Z",
+  "expected_evidence": [
+    "telemetry_span_error",
+    "metric_500_rate",
+    "missing_app_logs"
+  ],
+  "ground_truth_details": {
+    "component": "log_collector",
+    "regression_type": "missing_telemetry_inference",
+    "note": "Application log agent crashed; diagnosis must be deduced from HTTP 500 metrics and OpenTelemetry trace attributes."
+  }
+}

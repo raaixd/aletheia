@@ -1,0 +1,18 @@
+{
+  "incident_id": "INC-015",
+  "name": "tool_api_failure",
+  "root_cause": "telemetry_collector_503_probe_failure",
+  "introduced_by": "metrics_daemon_restart",
+  "affected_service": "telemetry-agent",
+  "start_time": "2026-09-25T16:00:00Z",
+  "expected_evidence": [
+    "http_503_on_metrics_endpoint",
+    "empty_prometheus_scrape",
+    "probe_timeout"
+  ],
+  "ground_truth_details": {
+    "component": "prometheus_exporter",
+    "regression_type": "monitoring_probe_breakdown",
+    "diagnostic_rule": "System must gracefully report telemetry collector outage rather than guessing root causes."
+  }
+}

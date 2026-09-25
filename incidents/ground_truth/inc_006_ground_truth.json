@@ -1,0 +1,22 @@
+{
+  "incident_id": "INC-006",
+  "name": "database_connection_exhaustion",
+  "root_cause": "connection_leak_unclosed_session",
+  "introduced_by": "commit_leak006",
+  "affected_service": "checkout-api",
+  "start_time": "2026-09-25T07:00:00Z",
+  "expected_evidence": [
+    "commit_leak006",
+    "active_connection_spike",
+    "too_many_clients_already"
+  ],
+  "ground_truth_details": {
+    "component": "postgresql",
+    "regression_type": "abandoned_sql_session",
+    "commit_metadata": {
+      "commit_id": "leak00633ff",
+      "author": "junior.eng@example.com",
+      "message": "refactor(checkout): remove session.close() in finally block"
+    }
+  }
+}

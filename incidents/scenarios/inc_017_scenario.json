@@ -1,0 +1,10 @@
+{
+  "scenario_id": "INC-017",
+  "name": "CoreDNS Fails to Resolve Internal Auth Hostname",
+  "description": "Inter-service DNS queries fail with NXDOMAIN, preventing checkout-api from calling auth-service.",
+  "target_service": "checkout-api",
+  "injection_point": "dns_resolver",
+  "default_parameters": {
+    "dns_status": "NXDOMAIN"
+  }
+}
