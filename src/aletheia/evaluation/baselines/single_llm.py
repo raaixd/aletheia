@@ -74,11 +74,28 @@ class SingleLLMBaseline(BaseDiagnosticSystem):
             timeline=timeline,
         )
 
-        resp = self.client.complete(
-            prompt=user_prompt,
-            system_prompt=BaselinePromptBuilder.SYSTEM_PROMPT,
-            json_mode=True,
-        )
+        try:
+            resp = self.client.complete(
+                prompt=user_prompt,
+                system_prompt=BaselinePromptBuilder.SYSTEM_PROMPT,
+                json_mode=True,
+            )
+        except Exception as exc:
+            logger.error(f"LLM completion call failed: {exc}")
+            return DiagnosisResult(
+                incident_id=incident_id,
+                root_cause=f"LLM API failure: {exc}",
+                root_cause_category="api_error",
+                suspected_component="unknown",
+                introduced_by="unknown",
+                affected_service="unknown",
+                explanation=f"LLM completion call failed: {exc}",
+                cited_evidence_ids=[],
+                confidence=0.0,
+                recommended_fix="Check LLM connectivity, credentials, and API status.",
+                raw_response=str(exc),
+                usage_metadata={"latency_seconds": 0.0, "estimated_cost_usd": 0.0},
+            )
 
         cost = calculate_cost(resp.model, resp.prompt_tokens, resp.completion_tokens)
         usage_meta = {

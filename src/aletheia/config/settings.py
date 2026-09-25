@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from typing import Optional
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +29,11 @@ class Settings(BaseSettings):
 
     # LLM & Evaluation Configuration
     llm_provider: str = "mock"  # "mock", "openai", "openai-compatible"
-    llm_api_key: Optional[str] = None
+    llm_api_key: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("LLM_API_KEY", "OPENAI_API_KEY"),
+        description="API key for LLM provider, read from LLM_API_KEY or OPENAI_API_KEY",
+    )
     llm_base_url: str = "https://api.openai.com/v1"
     llm_model: str = "gpt-4o-mini"
     llm_temperature: float = 0.0

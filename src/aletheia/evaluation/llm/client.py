@@ -152,6 +152,21 @@ class MockLLMClient(BaseLLMClient):
         )
 
 
+class LLMError(Exception):
+    """Base exception for LLM operations."""
+    pass
+
+
+class LLMAPIError(LLMError):
+    """Raised when an LLM API returns an error status or malformed response."""
+    pass
+
+
+class LLMTimeoutError(LLMAPIError):
+    """Raised when an LLM API request times out."""
+    pass
+
+
 class OpenAILLMClient(BaseLLMClient):
     """Direct HTTP client for OpenAI-compatible Chat Completion APIs (OpenAI, Gemini, Ollama, etc.)."""
 
@@ -162,13 +177,16 @@ class OpenAILLMClient(BaseLLMClient):
         model: Optional[str] = None,
         temperature: float = 0.0,
         timeout: float = 60.0,
+        transport: Optional[Any] = None,
     ):
+        import os
         settings = get_settings()
-        self.api_key = api_key or settings.llm_api_key or ""
+        self.api_key = api_key or settings.llm_api_key or os.environ.get("OPENAI_API_KEY") or ""
         self.base_url = (base_url or settings.llm_base_url or "https://api.openai.com/v1").rstrip("/")
         self.model = model or settings.llm_model or "gpt-4o-mini"
         self.temperature = temperature
         self.timeout = timeout
+        self.transport = transport
 
     def complete(
         self,
@@ -200,10 +218,17 @@ class OpenAILLMClient(BaseLLMClient):
         url = f"{self.base_url}/chat/completions"
         start_time = time.perf_counter()
 
-        with httpx.Client(timeout=self.timeout) as client:
-            resp = client.post(url, headers=headers, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
+        try:
+            with httpx.Client(timeout=self.timeout, transport=self.transport) as client:
+                resp = client.post(url, headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+        except httpx.TimeoutException as exc:
+            raise LLMTimeoutError(f"LLM API request timed out after {self.timeout}s: {exc}") from exc
+        except httpx.HTTPStatusError as exc:
+            raise LLMAPIError(f"LLM API HTTP error {exc.response.status_code}: {exc.response.text}") from exc
+        except (httpx.RequestError, json.JSONDecodeError, KeyError) as exc:
+            raise LLMAPIError(f"LLM API request/parsing error: {exc}") from exc
 
         latency = time.perf_counter() - start_time
         choice = data["choices"][0]
