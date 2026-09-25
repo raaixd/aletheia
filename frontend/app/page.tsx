@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { INITIAL_INCIDENTS } from "./data";
+import { SonarGrid } from "@/components/ui/sonar-grid";
+import { AnimatedAIChat } from "@/components/ui/animated-ai-chat";
 import {
   IncidentMetadata,
   DiagnosisResult,
@@ -19,6 +21,7 @@ export default function AletheiaApp() {
   const [activeNav, setActiveNav] = useState<"overview" | "investigate" | "incidents" | "graph" | "evaluations" | "system">("overview");
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationReport | null>(null);
   const [agentSteps, setAgentSteps] = useState<AgentSteps | null>(null);
@@ -33,6 +36,15 @@ export default function AletheiaApp() {
   const [expandedEvidenceId, setExpandedEvidenceId] = useState<string | null>(null);
 
   const currentIncident = incidents.find((i) => i.incident_id === selectedIncidentId) || incidents[0];
+
+  // Track header scroll state
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Fetch real incidents list from backend
   useEffect(() => {
@@ -391,19 +403,20 @@ export default function AletheiaApp() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* ========================================================================= */}
-      {/* 1. SLIM INSTRUMENT TOP BAR */}
+      {/* 1. SLIM INSTRUMENT TOP BAR (WITH ADAPTIVE SCROLL BLUR) */}
       {/* ========================================================================= */}
       <header
         style={{
-          borderBottom: "1px solid var(--border-hairline)",
-          backgroundColor: "rgba(8, 9, 13, 0.94)",
-          backdropFilter: "blur(12px)",
+          borderBottom: isScrolled ? "1px solid var(--border-subtle)" : "1px solid transparent",
+          backgroundColor: isScrolled ? "rgba(8, 9, 13, 0.94)" : "rgba(8, 9, 13, 0.6)",
+          backdropFilter: "blur(16px)",
           position: "sticky",
           top: 0,
           zIndex: 50,
           height: "52px",
           display: "flex",
           alignItems: "center",
+          transition: "background-color 0.25s ease, border-color 0.25s ease",
         }}
       >
         <div
@@ -550,166 +563,260 @@ export default function AletheiaApp() {
       {/* Main Viewport */}
       <main style={{ flex: 1, paddingBottom: "80px" }}>
         {/* ========================================================================= */}
-        {/* VIEW 1: OVERVIEW / LANDING */}
+        {/* VIEW 1: OVERVIEW / LANDING WITH SONAR GRID BACKGROUND */}
         {/* ========================================================================= */}
         {activeNav === "overview" && (
-          <div className="container-instrument" style={{ paddingTop: "64px" }}>
-            {/* Editorial Headline */}
-            <div style={{ maxWidth: "800px", marginBottom: "56px" }}>
-              <div className="section-tag">INCIDENT INVESTIGATION INSTRUMENT</div>
-              <h1
-                style={{
-                  fontSize: "3rem",
-                  fontWeight: 700,
-                  letterSpacing: "-0.03em",
-                  color: "#ffffff",
-                  lineHeight: 1.15,
-                  marginBottom: "16px",
-                }}
-              >
-                Find the truth behind the failure.
-              </h1>
-              <p
-                style={{
-                  fontSize: "1.1rem",
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.6,
-                  fontWeight: 400,
-                }}
-              >
-                An evidence-driven incident investigation system that reconstructs what happened,
-                evaluates competing explanations, and verifies conclusions against observable system evidence.
-              </p>
-            </div>
-
-            {/* Active Investigation Preview (Clean, unboxed) */}
+          <div>
+            {/* Atmospheric Hero with SonarGrid Canvas Background */}
             <div
               style={{
-                borderTop: "1px solid var(--border-subtle)",
-                borderBottom: "1px solid var(--border-subtle)",
-                padding: "32px 0",
-                marginBottom: "56px",
+                position: "relative",
+                overflow: "hidden",
+                minHeight: "540px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "80px 24px 64px 24px",
+                textAlign: "center",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }}>
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", marginBottom: "4px" }}>
-                    {currentIncident.incident_id} · {currentIncident.affected_service}
-                  </div>
-                  <h2 style={{ fontSize: "1.6rem", fontWeight: 600, color: "#ffffff", letterSpacing: "-0.01em" }}>
-                    {currentIncident.name}
-                  </h2>
-                  <div style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                    CRITICAL SEVERITY · INVESTIGATION COMPLETE
-                  </div>
+              {/* Subtle Sonar Grid Canvas */}
+              <SonarGrid
+                gridSize={34}
+                dotRadius={1}
+                dotColor="rgba(148, 163, 184, 0.12)"
+                activeColor="rgba(59, 130, 246, 0.55)"
+                ringColor="rgba(37, 99, 235, 0.2)"
+                pingIntervalMs={4500}
+                interactive={true}
+              />
+
+              {/* Centered Hero Content */}
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 10,
+                  maxWidth: "820px",
+                  margin: "0 auto",
+                }}
+              >
+                {/* 1. Eyebrow */}
+                <div
+                  className="section-tag"
+                  style={{
+                    display: "inline-flex",
+                    justifyContent: "center",
+                    marginBottom: "16px",
+                  }}
+                >
+                  ALETHEIA // INCIDENT INVESTIGATION INSTRUMENT
                 </div>
 
-                <div style={{ display: "flex", gap: "8px" }}>
+                {/* 2. Large Headline */}
+                <h1
+                  style={{
+                    fontSize: "3.2rem",
+                    fontWeight: 700,
+                    letterSpacing: "-0.03em",
+                    color: "#ffffff",
+                    lineHeight: 1.15,
+                    marginBottom: "18px",
+                  }}
+                >
+                  FIND THE TRUTH
+                  <br />
+                  BEHIND THE FAILURE.
+                </h1>
+
+                {/* 3. Short Description */}
+                <p
+                  style={{
+                    fontSize: "1.1rem",
+                    color: "var(--text-secondary)",
+                    lineHeight: 1.6,
+                    fontWeight: 400,
+                    maxWidth: "680px",
+                    margin: "0 auto 32px auto",
+                  }}
+                >
+                  Evidence-driven incident investigation for production systems.
+                  Reconstructs what happened, evaluates competing explanations, and verifies conclusions against system evidence.
+                </p>
+
+                {/* 4. Primary & Secondary CTAs */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "12px",
+                    marginBottom: "40px",
+                  }}
+                >
                   <button
                     onClick={() => setActiveNav("investigate")}
                     className="btn-instrument btn-instrument-primary"
+                    style={{ padding: "8px 22px", fontSize: "0.875rem" }}
                   >
-                    Open Investigation →
+                    Investigate an Incident
                   </button>
                   <button
-                    onClick={() => setActiveNav("graph")}
+                    onClick={() => setActiveNav("evaluations")}
                     className="btn-instrument btn-instrument-ghost"
+                    style={{ padding: "8px 18px", fontSize: "0.875rem" }}
                   >
-                    Evidence Map
+                    View Evaluations
                   </button>
                 </div>
-              </div>
 
-              {/* Minimalist Chronological Progression Row */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: "20px",
-                  paddingTop: "16px",
-                  borderTop: "1px solid var(--border-hairline)",
-                }}
-              >
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>02:00 Baseline</div>
-                  <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "2px" }}>Normal traffic (45ms P99)</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-blue-accent)" }}>02:02 Deployment</div>
-                  <div style={{ fontSize: "0.875rem", color: "var(--text-primary)", marginTop: "2px" }}>v4.2.1 release applied</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--status-amber)" }}>02:03 Query modified</div>
-                  <div style={{ fontSize: "0.875rem", color: "var(--text-primary)", marginTop: "2px" }}>Commit abc12348f9 sort altered</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-red)" }}>02:04 DB latency surge</div>
-                  <div style={{ fontSize: "0.875rem", color: "var(--crimson-red-text)", marginTop: "2px" }}>db.query 1850ms (Seq Scan)</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-red)" }}>02:05 SLA breach</div>
-                  <div style={{ fontSize: "0.875rem", color: "var(--crimson-red-text)", marginTop: "2px" }}>P99 spiked to 1800ms</div>
-                </div>
+                {/* 5. Aletheia Investigation Search & Command Bar */}
+                <AnimatedAIChat
+                  incidents={incidents}
+                  selectedIncidentId={selectedIncidentId}
+                  onSelectAndDiagnose={(incId) => {
+                    setSelectedIncidentId(incId);
+                    setActiveNav("investigate");
+                    runInvestigation(incId, selectedSystem);
+                  }}
+                  isLoading={isLoading}
+                />
               </div>
             </div>
 
-            {/* Architecture Proof Columns (Clean text columns, no card boxes) */}
-            <div>
-              <div className="section-tag">INVESTIGATION ARCHITECTURE PILLARS</div>
+            {/* Container for Content Below the Hero */}
+            <div className="container-instrument" style={{ paddingTop: "24px" }}>
+              {/* Active Incident Preview Strip */}
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: "32px",
-                  marginTop: "24px",
+                  borderTop: "1px solid var(--border-subtle)",
+                  borderBottom: "1px solid var(--border-subtle)",
+                  padding: "28px 0",
+                  marginBottom: "56px",
                 }}
               >
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.8rem", fontWeight: 700, color: "var(--verified-emerald)" }}>
-                    0.0%
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "16px" }}>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", marginBottom: "4px" }}>
+                      {currentIncident.incident_id} · {currentIncident.affected_service}
+                    </div>
+                    <h2 style={{ fontSize: "1.45rem", fontWeight: 600, color: "#ffffff", letterSpacing: "-0.01em" }}>
+                      {currentIncident.name}
+                    </h2>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                      CRITICAL SEVERITY · INVESTIGATION COMPLETE
+                    </div>
                   </div>
-                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
-                    Hallucination Rate
+
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      onClick={() => setActiveNav("investigate")}
+                      className="btn-instrument btn-instrument-ghost"
+                      style={{ fontSize: "0.75rem" }}
+                    >
+                      Open Full Narrative →
+                    </button>
+                    <button
+                      onClick={() => setActiveNav("graph")}
+                      className="btn-instrument btn-instrument-ghost"
+                      style={{ fontSize: "0.75rem" }}
+                    >
+                      Evidence Map
+                    </button>
                   </div>
-                  <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
-                    Decoupled Evidence Graph queries eliminate fabricated telemetry citations (reduced from 95% down to 0%).
-                  </p>
                 </div>
 
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.8rem", fontWeight: 700, color: "var(--crimson-blue-accent)" }}>
-                    100.0%
+                {/* Minimalist Chronological Progression Row */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: "16px",
+                    paddingTop: "16px",
+                    borderTop: "1px solid var(--border-hairline)",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>02:00 Baseline</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "2px" }}>Normal traffic (45ms P99)</div>
                   </div>
-                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
-                    Causal Grounding
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-blue-accent)" }}>02:02 Deployment</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-primary)", marginTop: "2px" }}>v4.2.1 release applied</div>
                   </div>
-                  <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
-                    Evidence precision is held at 100% across all 20 reproducible benchmarks via deterministic DAG graph verification.
-                  </p>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--status-amber)" }}>02:03 Query modified</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-primary)", marginTop: "2px" }}>Commit abc12348f9 sort altered</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-red)" }}>02:04 DB latency surge</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--crimson-red-text)", marginTop: "2px" }}>db.query 1850ms (Seq Scan)</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--crimson-red)" }}>02:05 SLA breach</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--crimson-red-text)", marginTop: "2px" }}>P99 spiked to 1800ms</div>
+                  </div>
                 </div>
+              </div>
 
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.8rem", fontWeight: 700, color: "#ffffff" }}>
-                    3-Agent
+              {/* Architecture Proof Columns */}
+              <div>
+                <div className="section-tag">INVESTIGATION ARCHITECTURE PILLARS</div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: "32px",
+                    marginTop: "24px",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.8rem", fontWeight: 700, color: "var(--verified-emerald)" }}>
+                      0.0%
+                    </div>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
+                      Hallucination Rate
+                    </div>
+                    <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
+                      Decoupled Evidence Graph queries eliminate fabricated telemetry citations (reduced from 95% down to 0%).
+                    </p>
                   </div>
-                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
-                    Adversarial Verifier
-                  </div>
-                  <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
-                    Independent Verifier agent challenges every analyst hypothesis against temporal order and counter-evidence.
-                  </p>
-                </div>
 
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.8rem", fontWeight: 700, color: "var(--text-secondary)" }}>
-                    20
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.8rem", fontWeight: 700, color: "var(--crimson-blue-accent)" }}>
+                      100.0%
+                    </div>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
+                      Causal Grounding
+                    </div>
+                    <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
+                      Evidence precision is held at 100% across all 20 reproducible benchmarks via deterministic DAG graph verification.
+                    </p>
                   </div>
-                  <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
-                    Benchmark Scenarios
+
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.8rem", fontWeight: 700, color: "#ffffff" }}>
+                      3-Agent
+                    </div>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
+                      Adversarial Verifier
+                    </div>
+                    <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
+                      Independent Verifier agent challenges every analyst hypothesis against temporal order and counter-evidence.
+                    </p>
                   </div>
-                  <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
-                    Systematically evaluated against diverse failure modes from query regressions to ReDoS and deadlocks.
-                  </p>
+
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.8rem", fontWeight: 700, color: "var(--text-secondary)" }}>
+                      20
+                    </div>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#fff", marginTop: "4px" }}>
+                      Benchmark Scenarios
+                    </div>
+                    <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "6px", lineHeight: 1.5 }}>
+                      Systematically evaluated against diverse failure modes from query regressions to ReDoS and deadlocks.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -721,7 +828,7 @@ export default function AletheiaApp() {
         {/* ========================================================================= */}
         {activeNav === "investigate" && (
           <div className="container-instrument" style={{ paddingTop: "48px", maxWidth: "960px" }}>
-            {/* 1. CALM INCIDENT HEADER (Rule 11) */}
+            {/* 1. Calm Incident Header */}
             <div style={{ marginBottom: "48px" }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--crimson-red)", marginBottom: "4px" }}>
                 {currentIncident.incident_id}
@@ -755,7 +862,7 @@ export default function AletheiaApp() {
 
             <hr className="chapter-divider" />
 
-            {/* 2. WHAT HAPPENED (TIMELINE) (Rule 12) */}
+            {/* 2. What Happened (Timeline) */}
             <section className="section-chapter">
               <div className="section-tag">// 01 — WHAT HAPPENED</div>
               <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "24px" }}>
@@ -855,7 +962,7 @@ export default function AletheiaApp() {
 
             <hr className="chapter-divider" />
 
-            {/* 3. EVIDENCE (INDEXED RECORD) (Rule 13) */}
+            {/* 3. Evidence (Indexed Record) */}
             <section className="section-chapter">
               <div className="section-tag">// 02 — EVIDENCE</div>
               <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
@@ -974,7 +1081,7 @@ export default function AletheiaApp() {
 
             <hr className="chapter-divider" />
 
-            {/* 4. HYPOTHESES (COMPETING EXPLANATIONS) (Rule 14) */}
+            {/* 4. Hypotheses (Competing Explanations) */}
             <section className="section-chapter">
               <div className="section-tag">// 03 — WHAT COULD HAVE CAUSED IT?</div>
               <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
@@ -1079,7 +1186,7 @@ export default function AletheiaApp() {
 
             <hr className="chapter-divider" />
 
-            {/* 5. VERIFICATION (Rule 15) */}
+            {/* 5. Verification */}
             <section className="section-chapter">
               <div className="section-tag section-tag-emerald">// 04 — VERIFICATION</div>
               <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "20px" }}>
@@ -1128,7 +1235,7 @@ export default function AletheiaApp() {
 
             <hr className="chapter-divider" />
 
-            {/* 6. FINAL DIAGNOSIS (THE EARNED CONCLUSION) (Rule 16) */}
+            {/* 6. Final Diagnosis */}
             <section className="section-chapter" style={{ paddingBottom: "24px" }}>
               <div className="section-tag">// 05 — FINAL DIAGNOSIS</div>
 
@@ -1189,7 +1296,7 @@ export default function AletheiaApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 3: INCIDENTS CATALOG (Rule 19) */}
+        {/* VIEW 3: INCIDENTS CATALOG */}
         {/* ========================================================================= */}
         {activeNav === "incidents" && (
           <div className="container-instrument" style={{ paddingTop: "48px" }}>
@@ -1285,7 +1392,7 @@ export default function AletheiaApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 4: EVIDENCE GRAPH (Rule 18) */}
+        {/* VIEW 4: EVIDENCE GRAPH */}
         {/* ========================================================================= */}
         {activeNav === "graph" && (
           <div className="container-instrument" style={{ paddingTop: "48px" }}>
@@ -1372,7 +1479,7 @@ export default function AletheiaApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 5: EVALUATIONS BENCHMARK (Rule 20) */}
+        {/* VIEW 5: EVALUATIONS BENCHMARK */}
         {/* ========================================================================= */}
         {activeNav === "evaluations" && (
           <div className="container-instrument" style={{ paddingTop: "48px" }}>
@@ -1453,7 +1560,7 @@ export default function AletheiaApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 6: SYSTEM & LLMOPS (Rule 21) */}
+        {/* VIEW 6: SYSTEM & LLMOPS */}
         {/* ========================================================================= */}
         {activeNav === "system" && (
           <div className="container-instrument" style={{ paddingTop: "48px" }}>
@@ -1465,7 +1572,7 @@ export default function AletheiaApp() {
               Model execution telemetry, token accounting, and live traces.
             </p>
 
-            {/* Clean summary row (No heavy cards) */}
+            {/* Clean summary row */}
             <div
               style={{
                 display: "grid",
@@ -1539,7 +1646,7 @@ export default function AletheiaApp() {
       </main>
 
       {/* ========================================================================= */}
-      {/* 7. SLIDE-OUT PROVENANCE INSPECTOR (Rule 26) */}
+      {/* 7. SLIDE-OUT PROVENANCE INSPECTOR */}
       {/* ========================================================================= */}
       {selectedEvidenceId && activeEvidenceObj && (
         <div
