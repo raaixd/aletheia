@@ -6,7 +6,7 @@
 
 *The goal isn't to build an AI that guesses what went wrong. It's to build an investigation system that gathers evidence, constructs explanations, challenges them, and can be measured when it gets the diagnosis wrong.*
 
-[![Status](https://img.shields.io/badge/status-Phase%208%20Complete-6E56CF?style=flat-square)](#roadmap)
+[![Status](https://img.shields.io/badge/status-Phase%209%20Complete%20(Working%20on%20Phase%2010)-6E56CF?style=flat-square)](#roadmap)
 [![Tests](https://img.shields.io/badge/tests-98%2F98%20passing-2EA043?style=flat-square)](#running-the-automated-test-suite)
 [![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?style=flat-square)](#quickstart-local-python-setup)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?style=flat-square)](#quickstart-docker-compose)
@@ -16,6 +16,14 @@
 ---
 
 When a production system experiences an incident, Aletheia gathers evidence from multiple sources, aligns it in time, constructs an evidence graph, generates competing hypotheses, challenges them through an adversarial verifier, and outputs an **evidence-backed diagnosis** that can be measured against ground truth.
+
+### Live Production Deployments (Vercel)
+- **Frontend Dashboard**: [https://aletheia-khaki-tau.vercel.app](https://aletheia-khaki-tau.vercel.app)
+- **FastAPI Investigation Backend**: [https://aletheia-backend-ten.vercel.app](https://aletheia-backend-ten.vercel.app)
+  - Interactive OpenAPI Documentation: [https://aletheia-backend-ten.vercel.app/docs](https://aletheia-backend-ten.vercel.app/docs)
+  - Health Endpoint: [https://aletheia-backend-ten.vercel.app/health](https://aletheia-backend-ten.vercel.app/health)
+  - 20-Incident Benchmark Catalog: [https://aletheia-backend-ten.vercel.app/api/v1/investigation/incidents](https://aletheia-backend-ten.vercel.app/api/v1/investigation/incidents)
+
 
 ## Table of Contents
 
@@ -33,7 +41,7 @@ When a production system experiences an incident, Aletheia gathers evidence from
 
 ## Current Status
 
-**Phase 8 — Reliability & LLMOps Complete**
+**Phase 9 — Developer-Grade Frontend & Vercel Deployment Complete (Working on Phase 10 — Final Portfolio Release)**
 
 <details open>
 <summary><b>Phase 1 — Foundation</b></summary>
@@ -115,7 +123,18 @@ Deterministic, time-aware evidence layer built without an LLM: evidence schema, 
   - *Comparative Benchmark* — 3-way evaluation comparison against single-model and 2-agent baselines.
   - *System & LLMOps* — telemetry traces, live token usage accounting, and latency percentiles.
 - **Live backend integration** — direct proxy architecture (`/api/backend/*`) connecting the web client to the FastAPI investigation engine.
+- **Dual Vercel Serverless Deployment** — both the Next.js frontend and Python FastAPI multi-agent backend are deployed live to Vercel Serverless with production API rewrites and real-time multi-agent execution.
 - **Quality gate verification** — 100% passing tests (98/98), static compilation verified via `npm run build`, and API proxy validated.
+</details>
+
+<details open>
+<summary><b>Phase 10 — Final Portfolio Release (In Progress)</b></summary>
+<br>
+
+- **Architectural writeups & formal ADR catalog** — comprehensive decision records for telemetry design, evidence graph indexing, and multi-agent consensus.
+- **Benchmark methodology & empirical analysis** — detailed breakdown of the 20-incident benchmark across 15 failure categories.
+- **Incident investigation demonstration guide** — end-to-end walkthroughs from telemetry ingestion to causal root-cause diagnosis.
+- **Final portfolio release packaging** — release artifacts and public documentation.
 </details>
 
 ---
@@ -136,6 +155,7 @@ Deterministic, time-aware evidence layer built without an LLM: evidence schema, 
 | **Overall Composite Score** | 22.1% | 65.5% | **66.1%** |
 | Mean Latency | **0.000s** | 0.000s | 0.001s |
 
+
 > Aletheia's adversarial verification loop is the standout: near-perfect verification success and zero hallucinations, while still edging out the 2-agent baseline on root-cause accuracy.
 
 ---
@@ -144,6 +164,10 @@ Deterministic, time-aware evidence layer built without an LLM: evidence schema, 
 
 ```text
 aletheia/
+├── api/                            # Vercel Serverless Function entrypoint
+│   └── index.py
+├── frontend/                       # Next.js 16 UI Dashboard
+├── vercel.json                     # Vercel deployment & routing configuration
 ├── docker-compose.yml              # Multi-container orchestration (postgres, checkout, aletheia)
 ├── Dockerfile.aletheia             # Container build for Aletheia investigation platform
 ├── pyproject.toml                  # Project metadata and tool configuration
@@ -475,5 +499,5 @@ curl http://localhost:8000/api/v1/eval/reports
 - [x] **Phase 6 — Multi-Agent Investigation** — Investigator, Analyst, and Verifier agents with LangGraph orchestration and comprehensive evaluation.
 - [x] **Phase 7 — Incident Benchmark & Comparative Evaluation** — 20 reproducible failure scenarios across 15 failure categories; 3-way comparative evaluation.
 - [x] **Phase 8 — Reliability & LLMOps** — token/cost/latency telemetry, retries, rate limits, structured run persistence.
-- [x] **Phase 9 — Frontend & Deployment** — Next.js dashboard with interactive timeline, evidence graph, and deployment.
-- [ ] **Phase 10 — Final Portfolio Release** — architecture writeups, benchmark results, demonstration guide, and ADRs.
+- [x] **Phase 9 — Frontend & Vercel Deployment** — Next.js dashboard with interactive timeline, evidence graph, and serverless Vercel deployments.
+- [ ] **Phase 10 — Final Portfolio Release (In Progress)** — architecture writeups, benchmark results, demonstration guide, and ADRs.

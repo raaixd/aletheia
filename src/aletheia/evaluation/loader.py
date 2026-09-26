@@ -15,6 +15,8 @@ def get_ground_truth_path(incident_id: str) -> Path:
     """Resolve ground truth JSON file path."""
     project_root = Path(__file__).resolve().parent.parent.parent.parent
     gt_dir = project_root / "incidents" / "ground_truth"
+    if not gt_dir.exists():
+        gt_dir = Path.cwd() / "incidents" / "ground_truth"
 
     candidate_names = [
         f"{incident_id.lower().replace('-', '_')}_ground_truth.json",

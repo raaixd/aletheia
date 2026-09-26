@@ -76,6 +76,8 @@ def list_incidents() -> List[Dict[str, Any]]:
     from pathlib import Path
     repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
     scenarios_dir = repo_root / "incidents" / "scenarios"
+    if not scenarios_dir.exists():
+        scenarios_dir = Path.cwd() / "incidents" / "scenarios"
     incidents_dict: Dict[str, Dict[str, Any]] = {}
     if scenarios_dir.exists():
         for p in sorted(scenarios_dir.glob("*.json")):

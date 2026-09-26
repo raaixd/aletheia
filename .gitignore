@@ -59,3 +59,7 @@ eval_results/benchmarks/*.json
 eval_results/BENCH-*.json
 eval_results/traces/*.jsonl
 
+# Vercel
+.vercel/
+
+.vercel
