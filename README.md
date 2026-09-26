@@ -24,7 +24,6 @@ When a production system experiences an incident, Aletheia gathers evidence from
   - Health Endpoint: [https://aletheia-backend-ten.vercel.app/health](https://aletheia-backend-ten.vercel.app/health)
   - 20-Incident Benchmark Catalog: [https://aletheia-backend-ten.vercel.app/api/v1/investigation/incidents](https://aletheia-backend-ten.vercel.app/api/v1/investigation/incidents)
 
-
 ## Table of Contents
 
 - [Current Status](#current-status)
